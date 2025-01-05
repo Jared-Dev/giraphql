@@ -1,17 +1,16 @@
 // @ts-nocheck
-import { CompatibleTypes, FieldKind, FieldNullability, FieldOptionsFromKind, NormalizeArgs, RootName, SchemaTypes, TypeParam, } from '../types/index.ts';
-import RootFieldBuilder from './root.ts';
-export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>> extends RootFieldBuilder<Types, ParentShape, Kind> {
+import { CompatibleTypes, ExposeNullability, FieldKind, FieldNullability, FieldOptionsFromKind, InferredFieldOptionKeys, NormalizeArgs, SchemaTypes, TypeParam, } from '../types/index.ts';
+import { RootFieldBuilder } from './root.ts';
+export class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends RootFieldBuilder<Types, ParentShape, Kind> {
     /**
      * Create a Boolean field from a boolean property on the parent object
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    exposeBoolean<Name extends CompatibleTypes<Types, ParentShape, "Boolean", Nullable>, ResolveReturnShape, Nullable extends FieldNullability<"Boolean"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+    exposeBoolean<Name extends CompatibleTypes<Types, ParentShape, "Boolean", true>, ResolveReturnShape, Nullable extends FieldNullability<"Boolean"> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, "Boolean", ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<"Boolean", Nullable, Name>(name, { ...options, type: "Boolean" });
     }
     /**
@@ -19,11 +18,10 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    exposeFloat<Name extends CompatibleTypes<Types, ParentShape, "Float", Nullable>, ResolveReturnShape, Nullable extends FieldNullability<"Float"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+    exposeFloat<Name extends CompatibleTypes<Types, ParentShape, "Float", true>, ResolveReturnShape, Nullable extends FieldNullability<"Float"> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, "Float", ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<"Float", Nullable, Name>(name, { ...options, type: "Float" });
     }
     /**
@@ -31,11 +29,10 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    exposeID<Name extends CompatibleTypes<Types, ParentShape, "ID", Nullable>, ResolveReturnShape, Nullable extends FieldNullability<"ID"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+    exposeID<Name extends CompatibleTypes<Types, ParentShape, "ID", true>, ResolveReturnShape, Nullable extends FieldNullability<"ID"> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, "ID", ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<"ID", Nullable, Name>(name, { ...options, type: "ID" });
     }
     /**
@@ -43,11 +40,10 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    exposeInt<Name extends CompatibleTypes<Types, ParentShape, "Int", Nullable>, ResolveReturnShape, Nullable extends FieldNullability<"Int"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "args" | "resolve" | "type">
+    exposeInt<Name extends CompatibleTypes<Types, ParentShape, "Int", true>, ResolveReturnShape, Nullable extends FieldNullability<"Int"> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, "Int", ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<"Int", Nullable, Name>(name, { ...options, type: "Int" });
     }
     /**
@@ -55,11 +51,10 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    exposeString<Name extends CompatibleTypes<Types, ParentShape, "String", Nullable>, ResolveReturnShape, Nullable extends FieldNullability<"String"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+    exposeString<Name extends CompatibleTypes<Types, ParentShape, "String", true>, ResolveReturnShape, Nullable extends FieldNullability<"String"> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, "String", ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<"String", Nullable, Name>(name, { ...options, type: "String" });
     }
     /**
@@ -69,15 +64,19 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      */
     exposeBooleanList<Name extends CompatibleTypes<Types, ParentShape, [
         "Boolean"
-    ], Nullable>, ResolveReturnShape, Nullable extends FieldNullability<[
+    ], {
+        list: true;
+        items: true;
+    }>, ResolveReturnShape, Nullable extends FieldNullability<[
         "Boolean"
-    ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+    ]> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, [
             "Boolean"
-        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+        ], ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, [
+            "Boolean"
+        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<[
             "Boolean"
         ], Nullable, Name>(name, { ...options, type: ["Boolean"] });
@@ -89,15 +88,19 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      */
     exposeFloatList<Name extends CompatibleTypes<Types, ParentShape, [
         "Float"
-    ], Nullable>, ResolveReturnShape, Nullable extends FieldNullability<[
+    ], {
+        list: true;
+        items: true;
+    }>, ResolveReturnShape, Nullable extends FieldNullability<[
         "Float"
-    ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+    ]> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, [
             "Float"
-        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+        ], ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, [
+            "Float"
+        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<[
             "Float"
         ], Nullable, Name>(name, { ...options, type: ["Float"] });
@@ -109,15 +112,19 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      */
     exposeIDList<Name extends CompatibleTypes<Types, ParentShape, [
         "ID"
-    ], Nullable>, ResolveReturnShape, Nullable extends FieldNullability<[
+    ], {
+        list: true;
+        items: true;
+    }>, ResolveReturnShape, Nullable extends FieldNullability<[
         "ID"
-    ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+    ]> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, [
             "ID"
-        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+        ], ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, [
+            "ID"
+        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<[
             "ID"
         ], Nullable, Name>(name, { ...options, type: ["ID"] });
@@ -129,15 +136,19 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      */
     exposeIntList<Name extends CompatibleTypes<Types, ParentShape, [
         "Int"
-    ], Nullable>, ResolveReturnShape, Nullable extends FieldNullability<[
+    ], {
+        list: true;
+        items: true;
+    }>, ResolveReturnShape, Nullable extends FieldNullability<[
         "Int"
-    ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+    ]> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, [
             "Int"
-        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+        ], ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, [
+            "Int"
+        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<[
             "Int"
         ], Nullable, Name>(name, { ...options, type: ["Int"] });
@@ -149,15 +160,19 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      */
     exposeStringList<Name extends CompatibleTypes<Types, ParentShape, [
         "String"
-    ], Nullable>, ResolveReturnShape, Nullable extends FieldNullability<[
+    ], {
+        list: true;
+        items: true;
+    }>, ResolveReturnShape, Nullable extends FieldNullability<[
         "String"
-    ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+    ]> = Types["DefaultFieldNullability"]>(name: Name, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, [
             "String"
-        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type">
+        ], ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, [
+            "String"
+        ], Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | "type" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
+        const [options = {} as never] = args;
         return this.exposeField<[
             "String"
         ], Nullable, Name>(name, { ...options, type: ["String"] });
@@ -167,11 +182,20 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    expose<Type extends TypeParam<Types>, Nullable extends boolean, ResolveReturnShape, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(...args: NormalizeArgs<[
-        name: Name,
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve">
+    expose<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, ResolveReturnShape, Name extends CompatibleTypes<Types, ParentShape, Type, Type extends [
+        unknown
+    ] ? {
+        list: true;
+        items: true;
+    } : true>>(name: Name extends keyof ParentShape ? Name : keyof ParentShape, ...args: NormalizeArgs<[
+        options: ExposeNullability<Types, Type, ParentShape, Name, Nullable> & Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "nullable" | InferredFieldOptionKeys>
     ]>) {
-        const [name, options = {} as never] = args;
-        return this.exposeField(name, options);
+        const [options = {} as never] = args;
+        return this.exposeField(name as never as CompatibleTypes<Types, ParentShape, Type, Type extends [
+            unknown
+        ] ? {
+            list: true;
+            items: true;
+        } : true>, options);
     }
 }

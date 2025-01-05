@@ -1,16 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldNullability,
+  FieldRequiredness,
   InputFieldMap,
+  InputShapeFromTypeParam,
+  InputType,
   InterfaceParam,
   RootName,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
-import { GiraphQLSubGraphPlugin } from '.';
+} from '@pothos/core';
+
+import type { GraphQLNamedType } from 'graphql';
+import type { PothosSubGraphPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       subGraphs?: Types['SubGraphs'][];
     }
@@ -49,8 +53,28 @@ declare global {
       subGraphs?: Types['SubGraphs'][];
     }
 
+    export interface ArgFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+    > extends InputFieldOptions<Types, Type, Req> {
+      subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req>
+        ? Types['SubGraphs'][]
+        : never;
+    }
+
+    export interface InputObjectFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+    > extends InputFieldOptions<Types, Type, Req> {
+      subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req>
+        ? Types['SubGraphs'][]
+        : never;
+    }
+
     export interface Plugins<Types extends SchemaTypes> {
-      subGraph: GiraphQLSubGraphPlugin<Types>;
+      subGraph: PothosSubGraphPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -58,6 +82,10 @@ declare global {
         defaultForTypes?: Types['SubGraphs'][];
         defaultForFields?: Types['SubGraphs'][];
         fieldsInheritFromTypes?: boolean;
+        explicitlyIncludeType?: (
+          type: GraphQLNamedType,
+          subGraphs: Types['SubGraphs'][],
+        ) => boolean;
       };
     }
 
@@ -66,7 +94,7 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      SubGraphs: PartialTypes['SubGraphs'] extends string ? PartialTypes['SubGraphs'] : string;
+      SubGraphs: PartialTypes['SubGraphs'] & string;
     }
   }
 }

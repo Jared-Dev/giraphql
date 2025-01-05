@@ -8,7 +8,7 @@ resolvers
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-errors
+yarn add @pothos/plugin-errors
 ```
 
 ### Setup
@@ -18,10 +18,10 @@ Ensure that the target in your `tsconfig.json` is set to `es6` or higher (defaul
 ### Example Usage
 
 ```typescript
-import ErrorsPlugin from '@giraphql/plugin-errors';
+import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [],
   },
 });
@@ -98,6 +98,38 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
 - `directResult`: Sets the default for `directResult` option on fields (only affects non-list
   fields)
+- `defaultResultOptions`: Sets the defaults for `result` option on fields.
+  - `name`: Function to generate a custom name on the generated result types.
+    ```ts
+    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin, ValidationPlugin],
+      errors: {
+        defaultTypes: [Error],
+        defaultResultOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+        defaultUnionOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+      },
+    });
+    ```
+- `defaultUnionOptions`: Sets the defaults for `result` option on fields.
+  - `name`: Function to generate a custom name on the generated union types.
+    ```ts
+    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin, ValidationPlugin],
+      errors: {
+        defaultTypes: [Error],
+        defaultResultOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+        defaultUnionOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+      },
+    });
+    ```
 
 ### Options on Fields
 
@@ -129,10 +161,10 @@ your clients.
 The follow is a small example of this pattern:
 
 ```typescript
-import ErrorsPlugin from '@giraphql/plugin-errors';
+import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });
@@ -145,7 +177,6 @@ const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
 
 builder.objectType(Error, {
   name: 'BaseError',
-  isTypeOf: (obj) => obj instanceof Error,
   interfaces: [ErrorInterface],
 });
 
@@ -163,7 +194,6 @@ class LengthError extends Error {
 builder.objectType(LengthError, {
   name: 'LengthError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof LengthError,
   fields: (t) => ({
     minLength: t.exposeInt('minLength'),
   }),
@@ -220,8 +250,7 @@ function flattenErrors(
   error: ZodFormattedError<unknown>,
   path: string[],
 ): { path: string[]; message: string }[] {
-  // eslint-disable-next-line no-underscore-dangle
-  const errors = error._errors.map((message) => ({
+    const errors = error._errors.map((message) => ({
     path,
     message,
   }));
@@ -257,7 +286,6 @@ const ZodFieldError = builder
 builder.objectType(ZodError, {
   name: 'ZodError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof ZodError,
   fields: (t) => ({
     fieldErrors: t.field({
       type: [ZodFieldError],
@@ -311,7 +339,6 @@ BEFORE the validation plugin in your plugin list.
 If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
 catch errors thrown when loading ids returned by the `resolve` function.
 
-plugin. This is because if items are nullable, the items in the list may be set to null rather that
 If the field is a `List` field, errors that occur when resolving objects from `ids` will not be
 handled by the errors plugin. This is because those errors are associated with each item in the list
 rather than the list field itself. In the future, the dataloader plugin may have an option to throw

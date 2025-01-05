@@ -2,9 +2,9 @@ import '../test-plugin/global-types';
 import SchemaBuilder from '../../../src';
 
 export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
+  HERBIVOROUS = 0,
+  CARNIVOROUS = 1,
+  OMNIVORIOUS = 2,
 }
 
 export class Animal {
@@ -36,6 +36,9 @@ const builder = new SchemaBuilder<{
     Giraffe: Giraffe;
     GiraffeStringFact: { factKind: 'string'; fact: string };
     GiraffeNumericFact: { factKind: 'number'; fact: string; value: number };
+  };
+  Inputs: {
+    FindGiraffeInput: { name: string };
   };
   Interfaces: {
     Animal: Animal;

@@ -1,28 +1,38 @@
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import { countCall, userNodeCounts } from './counts';
 import { TestInterface } from './interfaces';
 
-const UserNode = builder.loadableNode('UserNode', {
-  interfaces: [TestInterface],
+const UserNode = builder.loadableNodeRef('UserNode', {
   id: {
     resolve: (user) => user.id,
   },
-  isTypeOf: (obj) =>
-    typeof obj === 'object' && obj !== null && Object.prototype.hasOwnProperty.call(obj, 'id'),
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, userNodeCounts, keys.length);
     return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+      keys.map((id) =>
+        Number(id) > 0 ? { objType: 'UserNode', id: Number(id) } : new Error(`Invalid ID ${id}`),
+      ),
     );
   },
-  fields: (t) => ({}),
+});
+
+builder.objectType(UserNode, {
+  interfaces: [TestInterface],
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  isTypeOf: (obj) => (obj as any).objType === 'UserNode',
+  fields: () => ({}),
 });
 
 class ClassThing {
-  id: number = 123;
-  name: string = 'some name';
+  id: number;
+
+  name = 'some name';
+
+  constructor(id = 123) {
+    this.id = id;
+  }
 }
 
 const ClassThingRef = builder.loadableNode(ClassThing, {
@@ -30,11 +40,35 @@ const ClassThingRef = builder.loadableNode(ClassThing, {
   interfaces: [TestInterface],
   id: {
     resolve: (user) => user.id,
+    parse: (id) => id,
   },
   loaderOptions: { maxBatchSize: 20 },
-  // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys: string[], context: ContextType) => [new ClassThing()],
-  fields: (t) => ({}),
+  load: async (keys) => keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
+  fields: () => ({}),
+});
+
+class LoadableParseTest {
+  readonly id: number;
+
+  constructor(id: number) {
+    if (typeof id !== 'number') {
+      throw new TypeError(`Expected id to be a number, saw ${id}`);
+    }
+    this.id = id;
+  }
+}
+
+const LoadableParseRef = builder.loadableNode(LoadableParseTest, {
+  name: 'LoadableParseTest',
+  id: {
+    resolve: (user) => user.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  loaderOptions: { maxBatchSize: 20 },
+  load: async (keys, _context: ContextType) => keys.map((k) => new LoadableParseTest(k)),
+  fields: (t) => ({
+    idNumber: t.exposeInt('id'),
+  }),
 });
 
 builder.queryFields((t) => ({
@@ -44,7 +78,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   userNodes: t.field({
     type: [UserNode],
@@ -64,5 +98,16 @@ builder.queryFields((t) => ({
   classThingRef: t.field({
     type: ClassThingRef,
     resolve: () => '1',
+  }),
+  loadableParse: t.field({
+    type: LoadableParseRef,
+    resolve: () => 1,
+  }),
+  loadableParseNodes: t.field({
+    type: [LoadableParseRef],
+    args: {
+      ids: t.arg.globalIDList({ for: LoadableParseRef }),
+    },
+    resolve: (_source, args) => args.ids?.map((id) => id.id) ?? [],
   }),
 }));

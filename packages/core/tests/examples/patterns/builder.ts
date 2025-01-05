@@ -1,6 +1,9 @@
 import SchemaBuilder from '../../../src';
 
 export interface SchemaTypes {
+  Objects: {
+    Query: {};
+  };
   Scalars: {
     ID: {
       Input: string;
@@ -8,7 +11,7 @@ export interface SchemaTypes {
     };
   };
 }
-export type TypesWithDefault = GiraphQLSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
+export type TypesWithDefault = PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
 
 const builder = new SchemaBuilder<SchemaTypes>({});
 

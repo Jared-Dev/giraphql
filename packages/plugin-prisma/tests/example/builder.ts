@@ -1,10 +1,11 @@
-import SchemaBuilder from '@giraphql/core';
-import ErrorsPlugin from '@giraphql/plugin-errors';
-import RelayPlugin from '@giraphql/plugin-relay';
-import { PrismaClient } from '@prisma/client';
-// eslint-disable-next-line import/no-named-as-default
-import PrismaPlugin from '../../src';
-import PrismaTypes from '../generated';
+import SchemaBuilder from '@pothos/core';
+import ComplexityPlugin from '@pothos/plugin-complexity';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import RelayPlugin from '@pothos/plugin-relay';
+import SimpleObjects from '@pothos/plugin-simple-objects';
+import PrismaPlugin, { queryFromInfo, type PrismaTypesFromClient } from '../../src';
+import { Prisma, PrismaClient } from '../client/index';
+import { getDatamodel } from '../generated.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -27,18 +28,52 @@ export const prisma = new PrismaClient({
   ],
 });
 
-export default new SchemaBuilder<{
+type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
+
+interface Types {
+  Scalars: {
+    Decimal: {
+      Input: Prisma.Decimal;
+      Output: Prisma.Decimal;
+    };
+  };
   Context: {
     user: { id: number };
   };
   PrismaTypes: PrismaTypes;
-}>({
-  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin],
-  relayOptions: {},
-  prisma: {
-    client: prisma,
+  AuthScopes: {
+    user: boolean;
+  };
+}
+
+const builder = new SchemaBuilder<Types>({
+  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin, SimpleObjects],
+  relay: {
+    nodeFieldOptions: {
+      nullable: false,
+    },
   },
-  errorOptions: {
+  prisma: {
+    filterConnectionTotalCount: true,
+    client: () => prisma,
+    dmmf: getDatamodel(),
+    exposeDescriptions: true,
+    onUnusedQuery: 'error',
+  },
+  errors: {
     defaultTypes: [Error],
   },
 });
+
+builder.scalarType('Decimal', {
+  serialize: (value) => value.toString(),
+  parseValue: (value) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('Decimal must be a string');
+    }
+
+    return new Prisma.Decimal(value);
+  },
+});
+
+export default builder;

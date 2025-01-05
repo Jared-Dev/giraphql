@@ -1,5 +1,374 @@
 # Change Log
 
+## 4.1.1
+
+### Patch Changes
+
+- 174c7b0: Bind `authScopes` loaders to returned provider
+
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [777f6de]
+  - @pothos/core@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
+## 3.22.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.22.0
+
+### Minor Changes
+
+- c78380d: [auth] Allow clearing/resetting scope cache in the middle of a request
+
+## 3.21.1
+
+### Patch Changes
+
+- 8019b47: Fix type issue when inferring SchemaTypes when DefaultAuthStrategy isn't defined
+
+## 3.21.0
+
+### Minor Changes
+
+- 22d4118: Add DefaultAuthStrategy to SchemaTypes to allow improve types when defaultStrategy is set
+  to all
+
+## 3.20.0
+
+### Minor Changes
+
+- 09bd29a6: Add new defaultStrategy option to allow enforcing all scopes in a scopeMap without using
+  `$all`
+
+## 3.19.2
+
+### Patch Changes
+
+- ce43b442: Fix issue where 2nd argument of authScopes on types would actually be the info object
+  when `treatErrorsAsUnauthorized` was enabled
+
+## 3.19.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.19.0
+
+### Minor Changes
+
+- 1878d5d9: Allow readonly arrays in more places
+
+## 3.18.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.17.0
+
+### Minor Changes
+
+- 85687927: Added support for running authScopes when a subscroption is created rather than when
+  subscription values are resolved
+
+## 3.16.0
+
+### Minor Changes
+
+- d4d41796: Add new `treatErrorsAsUnauthorized` option for better handling of thrown errors
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.15.2
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.15.1
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.15.0
+
+### Minor Changes
+
+- d350f842: Support functions and $any and $all in authField and withAuth methods
+
+### Patch Changes
+
+- d350f842: update dev deps
+
+## 3.14.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.14.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.14.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.14.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.14.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.13.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.13.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.12.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
+## 3.11.2
+
+### Patch Changes
+
+- c102f522: Fix withAuth on prismaObject fields builders
+
+## 3.11.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
+## 3.11.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.10.0
+
+### Minor Changes
+
+- 7311904e: Add withAuth method to return a field builder to allow custom auth context with other
+  plugin methods
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+
+## 3.9.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 3.9.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.8.1
+
+### Patch Changes
+
+- 205a8c73: Fix issue with string refs used as interfaces
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
+## 3.8.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+## 3.7.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+## 3.6.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
+## 3.5.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.4.2
+
+### Patch Changes
+
+- cf4a2d14: cleanup style and comments
+
+## 3.4.1
+
+### Patch Changes
+
+- e7d18c41: make error formatter optional for runAuthScopes
+
+## 3.4.0
+
+### Minor Changes
+
+- 6b441da8: Allow running scopemaps directly
+
+## 3.3.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.3.0
+
+### Minor Changes
+
+- 5ade1c8c: Add runScopesOnType option for better type level auth checks
+- 43ca3031: Add skipInterfaceScopes option on Object types
+- 4ad5f4ff: Add cacheKey option
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 3.2.0
+
+### Minor Changes
+
+- c959d459: Remove args option from global unauthorizedError callback
+
+## 3.1.0
+
+### Minor Changes
+
+- 4234ab3e: Allow Error customization
+
+## 3.0.2
+
+### Patch Changes
+
+- 089af750: Export ForbiddenError for re-use
+
+## 3.0.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.15.0
+
+### Minor Changes
+
+- a7c34fe1: Add an unauthorizedResolver option to the scope-auth plugin
+
+## 2.14.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.13.3
 
 ### Patch Changes

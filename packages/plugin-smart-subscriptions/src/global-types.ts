@@ -1,23 +1,23 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'graphql';
-import {
+import type {
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
-import { SmartSubscriptionOptions } from './types';
-import {
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { SmartSubscriptionOptions } from './types';
+
+import type {
   FieldSubscriptionManager,
-  GiraphQLSmartSubscriptionsPlugin,
+  PothosSmartSubscriptionsPlugin,
   TypeSubscriptionManager,
 } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      smartSubscriptions: GiraphQLSmartSubscriptionsPlugin<Types>;
+      smartSubscriptions: PothosSmartSubscriptionsPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

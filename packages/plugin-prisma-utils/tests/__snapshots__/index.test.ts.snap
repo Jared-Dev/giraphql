@@ -1,0 +1,156 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`prisma utils > generates schema 1`] = `
+"input CommentFilter {
+  createdAt: DateTime
+}
+
+input CommentListFilter {
+  some: CommentFilter
+}
+
+input CreateUserPostsInput {
+  title: String!
+}
+
+scalar DateTime
+
+input EnvironmentManyVariableCreate {
+  createMany: EnvironmentManyVariableCreateInputData
+}
+
+input EnvironmentManyVariableCreateInputData {
+  data: [PostCreateManyInput!]!
+  skipDuplicates: Boolean
+}
+
+input IntAtomicUpdate {
+  decrement: Int
+  divide: Int
+  increment: Int
+  multiply: Int
+  set: Int
+}
+
+input IntFilter {
+  equals: Int
+  not: IntFilter
+}
+
+type Mutation {
+  createPosts(data: [PostCreateInput!]!): [Post!]
+  createUser(data: UserCreateInput!): User
+  createUserWithManyPosts(input: MutationCreateUserWithManyPostsInput!): User
+  updatePost(data: PostUpdateInput!, id: Int!): Post
+}
+
+input MutationCreateUserWithManyPostsInput {
+  email: String!
+  name: String!
+  posts: EnvironmentManyVariableCreate!
+}
+
+enum OrderBy {
+  Asc
+  Desc
+}
+
+type Post {
+  author: User
+  id: ID
+  title: String
+}
+
+input PostCreateInput {
+  authorId: String!
+  title: String!
+}
+
+input PostCreateManyInput {
+  title: String!
+}
+
+input PostFilter {
+  author: UserFilter
+
+  """filter by author id"""
+  authorId: IntFilter
+  comments: CommentListFilter
+  createdAt: DateTime
+  id: IntFilter
+  title: String
+}
+
+input PostOrderBy {
+  author: UserOrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  title: OrderBy
+}
+
+input PostUpdateInput {
+  title: String
+  views: IntAtomicUpdate
+}
+
+input PostWhereUnique {
+  id: Int
+}
+
+input ProfileOrderBy {
+  bio: OrderBy
+  user: UserOrderBy
+}
+
+type Query {
+  post(list: StringListFilter, title: StringFilter): Post
+  posts(filter: PostFilter, order: [PostOrderBy!]): [Post!]
+}
+
+input StringFilter {
+  contains: String
+  equals: String
+  not: StringFilter
+  startsWith: String
+}
+
+input StringListFilter {
+  every: StringFilter
+  none: StringFilter
+  some: StringFilter
+}
+
+type User {
+  email: String
+  id: ID
+  name: String
+  posts: [Post!]
+}
+
+input UserCreateInput {
+  email: String!
+  name: String
+  posts: UserCreatePostsRelationInput
+}
+
+input UserCreatePostsRelationInput {
+  connect: [PostWhereUnique!]
+  create: [CreateUserPostsInput!]
+}
+
+input UserFilter {
+  NOT: UserFilter
+  OR: [UserFilterOr!]
+  id: IntFilter
+}
+
+input UserFilterOr {
+  id: Int
+  name: String
+}
+
+input UserOrderBy {
+  name: OrderBy
+  profile: ProfileOrderBy
+}"
+`;

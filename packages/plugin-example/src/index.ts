@@ -1,48 +1,47 @@
-/* eslint-disable no-console */
 import './global-types';
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLEnumValueConfig,
-  GiraphQLInputFieldConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
-  GiraphQLUnionTypeConfig,
-  SchemaTypes,
-} from '@giraphql/core';
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosInterfaceTypeConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type PothosUnionTypeConfig,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 
 export * from './types';
 
-const pluginName = 'example' as const;
+const pluginName = 'example';
 
 export default pluginName;
 
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
     console.log(this.builder.options.nestedOptionsObject?.exampleOption);
     console.log(this.options.customBuildTimeOptions);
 
     if (typeConfig.kind === 'Object') {
-      console.log(typeConfig.giraphqlOptions.optionOnObject);
+      console.log(typeConfig.pothosOptions.optionOnObject);
     }
 
     return typeConfig;
   }
 
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
     if (fieldConfig.kind === 'Mutation') {
-      console.log(fieldConfig.giraphqlOptions.customMutationFieldOption);
+      console.log(fieldConfig.pothosOptions.customMutationFieldOption);
     }
 
     return fieldConfig;
   }
 
-  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
     return fieldConfig;
   }
 
-  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+  override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
     return valueConfig;
   }
 
@@ -54,7 +53,8 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
@@ -65,17 +65,19 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
+    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ) {
     return resolveType;
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLExamplePlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);

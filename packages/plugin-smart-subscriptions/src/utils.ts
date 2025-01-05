@@ -1,6 +1,6 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { createContextCache } from '@giraphql/core';
-import { SmartSubscriptionOptions } from './types';
+import { PothosSchemaError, createContextCache } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { SmartSubscriptionOptions } from './types';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {
   if (path.prev) {
@@ -30,7 +30,9 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
       const map = iterators(context)!;
 
       if (map.has(name)) {
-        throw new Error(`Can't create multiple subscriptions for the same event name ${name}`);
+        throw new PothosSchemaError(
+          `Can't create multiple subscriptions for the same event name ${name}`,
+        );
       }
 
       map.set(name, itr);
@@ -46,7 +48,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
     unsubscribe: async (name, context) => {
       const map = iterators(context)!;
 
-      if (!map || !map.has(name)) {
+      if (!map?.has(name)) {
         return;
       }
 

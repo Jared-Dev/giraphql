@@ -1,32 +1,29 @@
-import { GiraphQLEnumValueConfig, SchemaTypes } from '../types';
-
-import { BaseEnum, EnumValues } from '..';
+import type { BaseEnum, EnumValues, PothosEnumValueConfig, SchemaTypes } from '../types';
 
 export function normalizeEnumValues<Types extends SchemaTypes>(
   values: EnumValues<SchemaTypes>,
-): Record<string, GiraphQLEnumValueConfig<Types>> {
-  const result: Record<string, GiraphQLEnumValueConfig<Types>> = {};
+): Record<string, PothosEnumValueConfig<Types>> {
+  const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
   if (Array.isArray(values)) {
-    values.forEach((key) => {
+    for (const key of values) {
       result[String(key)] = {
-        giraphqlOptions: {},
+        pothosOptions: {},
       };
-    });
+    }
   } else {
-    Object.entries(values).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(values)) {
       if (value && typeof value === 'object') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         result[key] = {
           ...value,
-          giraphqlOptions: value as GiraphQLSchemaTypes.EnumValueConfig<Types>,
+          pothosOptions: value as PothosSchemaTypes.EnumValueConfig<Types>,
         };
       } else if (typeof value === 'string') {
         result[value] = {
-          giraphqlOptions: {},
+          pothosOptions: {},
         };
       }
-    });
+    }
   }
 
   return result;
@@ -34,17 +31,17 @@ export function normalizeEnumValues<Types extends SchemaTypes>(
 
 export function valuesFromEnum<Types extends SchemaTypes>(
   Enum: BaseEnum,
-): Record<string, GiraphQLEnumValueConfig<Types>> {
-  const result: Record<string, GiraphQLEnumValueConfig<Types>> = {};
+  values?: Record<string, Omit<PothosSchemaTypes.EnumValueConfig<Types>, 'value'>>,
+): Record<string, PothosEnumValueConfig<Types>> {
+  const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
-  Object.keys(Enum)
-    .filter((key) => typeof Enum[Enum[key]] !== 'number')
-    .forEach((key) => {
-      result[key] = {
-        value: Enum[key],
-        giraphqlOptions: {},
-      };
-    });
+  for (const key of Object.keys(Enum).filter((key) => typeof Enum[Enum[key]] !== 'number')) {
+    result[key] = {
+      value: Enum[key],
+      pothosOptions: {},
+      ...values?.[key],
+    };
+  }
 
   return result;
 }

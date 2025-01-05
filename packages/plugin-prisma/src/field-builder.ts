@@ -1,41 +1,100 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  FieldKind,
-  FieldRef,
-  InputFieldMap,
+  type FieldKind,
+  type FieldRef,
+  type InputFieldMap,
+  type MaybePromise,
   ObjectRef,
+  PothosError,
   RootFieldBuilder,
-  SchemaTypes,
-  TypeParam,
-} from '@giraphql/core';
-import { resolvePrismaCursorConnection } from './cursors';
-import { getRefFromModel } from './refs';
-import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
-import { queryFromInfo } from './util';
+  type SchemaTypes,
+  isThenable,
+} from '@pothos/core';
+import {
+  type GraphQLResolveInfo,
+  Kind,
+  getNamedType,
+  isInterfaceType,
+  isObjectType,
+} from 'graphql';
+import { ModelLoader } from './model-loader';
+import type { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
+import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
+import { getRefFromModel } from './util/datamodel';
+import { queryFromInfo } from './util/map-query';
+import { isUsed } from './util/usage';
 
-export * from './prisma-field-builder';
-
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind
 >;
 
 fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options }) {
-  const model: string = Array.isArray(type) ? type[0] : type;
-  const typeRef = getRefFromModel(model, this.builder);
-  const typeParam: TypeParam<SchemaTypes> = Array.isArray(type) ? [typeRef] : typeRef;
-
+  const modelOrRef = Array.isArray(type) ? type[0] : type;
+  const typeRef =
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+  const typeParam = Array.isArray(type)
+    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
+    : typeRef;
   return this.field({
-    ...options,
+    ...(options as {}),
     type: typeParam,
-    resolve: (parent: unknown, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo(ctx, info);
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      const query = queryFromInfo({
+        context,
+        info,
+        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+      });
 
-      return resolve(query, parent, args as never, ctx, info) as never;
+      return checkIfQueryIsUsed(
+        this.builder,
+        query,
+        info,
+        resolve(query, parent, args as never, context, info) as never,
+      );
     },
   }) as never;
 };
+
+fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput(
+  this: typeof fieldBuilderProto,
+  {
+    type,
+    resolve,
+    ...options
+  }: { type: ObjectRef<SchemaTypes, unknown> | [string]; resolve: (...args: unknown[]) => unknown },
+) {
+  const modelOrRef = Array.isArray(type) ? type[0] : type;
+  const typeRef =
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+  const typeParam = Array.isArray(type)
+    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
+    : typeRef;
+  return (
+    this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
+  ).fieldWithInput({
+    ...(options as {}),
+    type: typeParam,
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      const query = queryFromInfo({
+        context,
+        info,
+        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+      });
+
+      return checkIfQueryIsUsed(
+        this.builder,
+        query,
+        info,
+        resolve(query, parent, args as never, context, info) as never,
+      );
+    },
+  }) as never;
+} as never;
 
 fieldBuilderProto.prismaConnection = function prismaConnection<
   Type extends keyof SchemaTypes['PrismaTypes'],
@@ -48,68 +107,167 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   {
     type,
     cursor,
-    maxSize,
-    defaultSize,
+    maxSize = this.builder.options.prisma?.maxConnectionSize,
+    defaultSize = this.builder.options.prisma?.defaultConnectionSize,
     resolve,
+    totalCount,
     ...options
   }: PrismaConnectionFieldOptions<
     SchemaTypes,
     unknown,
     Type,
     Model,
-    ObjectRef<{}>,
+    ObjectRef<SchemaTypes, {}>,
     Nullable,
     Args,
     ResolveReturnShape,
     FieldKind
   >,
-  connectionOptions: {},
-  edgeOptions: {},
+  connectionOptions: {} = {},
+  edgeOptions: {} = {},
 ) {
-  const ref = getRefFromModel(type, this.builder);
-  let typeName: string | undefined;
-
+  const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
+  const typeName = this.builder.configStore.getTypeConfig(ref).name;
+  const model = this.builder.configStore.getTypeConfig(ref).extensions?.pothosPrismaModel as string;
+  const formatCursor = getCursorFormatter(model, this.builder, cursor);
+  const parseCursor = getCursorParser(model, this.builder, cursor);
+  const cursorSelection = ModelLoader.getCursorSelection(ref, model, cursor, this.builder);
   const fieldRef = (
-    this as typeof fieldBuilderProto & { connection: (...args: unknown[]) => FieldRef<unknown> }
+    this as typeof fieldBuilderProto & {
+      connection: (...args: unknown[]) => FieldRef<SchemaTypes, unknown>;
+    }
   ).connection(
     {
       ...options,
       type: ref,
       resolve: (
         parent: unknown,
-        args: GiraphQLSchemaTypes.DefaultConnectionArguments,
-        ctx: {},
+        args: PothosSchemaTypes.DefaultConnectionArguments,
+        context: {},
         info: GraphQLResolveInfo,
-      ) =>
-        resolvePrismaCursorConnection(
+      ) => {
+        const query = queryFromInfo({
+          context,
+          info,
+          select: cursorSelection as {},
+          paths: [['nodes'], ['edges', 'node']],
+          typeName,
+          withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+        });
+
+        const returnType = getNamedType(info.returnType);
+        const fields =
+          isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+        const selections = info.fieldNodes;
+
+        const totalCountOnly = selections.every(
+          (selection) =>
+            selection.selectionSet?.selections.length === 1 &&
+            selection.selectionSet.selections.every(
+              (s) =>
+                s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+            ),
+        );
+
+        return resolvePrismaCursorConnection(
           {
-            query: queryFromInfo(ctx, info),
-            column: cursor,
+            parent,
+            query,
+            ctx: context,
+            parseCursor,
             maxSize,
             defaultSize,
             args,
+            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
-          (query) => resolve(query as never, parent, args as never, ctx, info),
-        ),
-    },
-    {
-      ...connectionOptions,
-      extensions: {
-        ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-        giraphQLPrismaIndirectInclude: {
-          getType: () => {
-            if (!typeName) {
-              typeName = this.builder.configStore.getTypeConfig(ref).name;
+          formatCursor,
+          (q) => {
+            if (totalCountOnly) {
+              return [];
             }
 
-            return typeName;
+            return checkIfQueryIsUsed(
+              this.builder,
+              query,
+              info,
+              resolve(q as never, parent, args as never, context, info) as never,
+            );
           },
-          path: [{ name: 'edges' }, { name: 'node' }],
-        },
+        );
       },
     },
+    connectionOptions instanceof ObjectRef
+      ? connectionOptions
+      : {
+          ...connectionOptions,
+          fields: totalCount
+            ? (
+                t: PothosSchemaTypes.ObjectFieldBuilder<
+                  SchemaTypes,
+                  { totalCount?: () => MaybePromise<number> }
+                >,
+              ) => ({
+                totalCount: t.int({
+                  nullable: false,
+                  extensions: {
+                    pothosPrismaTotalCount: true,
+                  },
+                  resolve: (parent) => parent.totalCount?.(),
+                }),
+                ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+              })
+            : (connectionOptions as { fields: undefined }).fields,
+          extensions: {
+            ...(connectionOptions as Record<string, object> | undefined)?.extensions,
+          },
+        },
     edgeOptions,
   );
 
   return fieldRef;
 } as never;
+
+function checkIfQueryIsUsed<Types extends SchemaTypes, T>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  query: object,
+  info: GraphQLResolveInfo,
+  result: T,
+): T {
+  const { onUnusedQuery } = builder.options.prisma || {};
+  if (!onUnusedQuery) {
+    return result;
+  }
+
+  if (isThenable(result)) {
+    return result.then((resolved) => {
+      if (!isUsed(query)) {
+        onUnused();
+      }
+
+      return resolved;
+    }) as T;
+  }
+
+  if (!isUsed(query)) {
+    onUnused();
+  }
+
+  return result;
+
+  function onUnused() {
+    if (typeof onUnusedQuery === 'function') {
+      onUnusedQuery(info);
+      return;
+    }
+
+    const message = `Prisma query was unused in resolver for ${info.parentType.name}.${info.fieldName}`;
+
+    if (onUnusedQuery === 'error') {
+      throw new PothosError(message);
+    }
+    if (onUnusedQuery === 'warn') {
+      console.warn(message);
+    }
+  }
+}

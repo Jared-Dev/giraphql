@@ -1,5 +1,923 @@
 # Change Log
 
+## 4.4.0
+
+### Minor Changes
+
+- ea9981f: Support prisma 6.0
+
+## 4.3.1
+
+### Patch Changes
+
+- 52a70e9: Load client when db request is initialized rather than caching on model loader
+
+## 4.3.0
+
+### Minor Changes
+
+- aadc82c: export client cache so it can be reset during request
+
+## 4.2.2
+
+### Patch Changes
+
+- 2f91f2b: Fix ref relay options in plugin-prisma
+
+## 4.2.1
+
+### Patch Changes
+
+- fc44ea7: Fix a few cases where passing PrismaRefs for field types breaks model inference
+
+## 4.2.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.1.0
+
+### Minor Changes
+
+- 307340a: Improve queryFromInfo typing
+- 307340a: Use a shared directive name for defining indirect resolutions
+
+## 4.0.5
+
+### Patch Changes
+
+- 094396d: Fix t.withAuth used with prismaField and PrismaObjectRefs
+
+## 4.0.4
+
+### Patch Changes
+
+- a95bd0a: Add support for composite types when inferring PrismaTypes from client (thanks to @2coo)
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [777f6de]
+  - @pothos/core@4.0.2
+
+## 4.0.2
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
+## 4.0.1
+
+### Patch Changes
+
+- 132a2a5: Fix empty generated.ts file
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- 79139e8: rebuild generator
+- c1e6dcb: update readmes
+- b2de1f2: fix datamodel generator
+- bdcb8cd: Fix prismaFieldWithInput
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
+## 4.0.0-next.4
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.3
+
+### Patch Changes
+
+- 924ae0b: rebuild generator
+
+## 4.0.0-next.2
+
+### Patch Changes
+
+- fix datamodel generator
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- Fix prismaFieldWithInput
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
+## 3.65.3
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.65.2
+
+### Patch Changes
+
+- ae7d3fb: Fix prisma esm import on windows
+
+## 3.65.1
+
+### Patch Changes
+
+- f763170: Add delete method to context caches
+
+## 3.65.0
+
+### Minor Changes
+
+- 3698a15: Accept a typeName for nestedSelection helper to allow optimized sub-selections on
+  abstract types
+
+## 3.64.0
+
+### Minor Changes
+
+- 22d4118: Add maxConnectionSize and defaultConnectionSize options
+- 22d4118: Fix type issue where using `select` on a type or field for a nullable relation would
+  result in the relation being non-nullable on the parent object
+
+## 3.63.1
+
+### Patch Changes
+
+- 9606ed4: [plugin-prisma] Fix prisma generator not creating the ESM build on windows
+
+## 3.63.0
+
+### Minor Changes
+
+- 7672c13: Add support for adding args, and query with where/orderBy to prismaConnectionHelpers
+
+## 3.62.0
+
+### Minor Changes
+
+- b3cb5fd: Arguments support for prisma relation count
+
+## 3.61.0
+
+### Minor Changes
+
+- 0be6da5c: Fix issue with detection for totalCount only selections
+
+## 3.60.0
+
+### Minor Changes
+
+- 018c797c: Prevent loading full relation on a prisma connection when only total count is selected
+
+## 3.59.3
+
+### Patch Changes
+
+- 094359cd: Expose prismaModelKey
+
+## 3.59.2
+
+### Patch Changes
+
+- 0d8d60fa: add another case for @skip and @include when generating prisma selections
+
+## 3.59.1
+
+### Patch Changes
+
+- 1fc5b60b: Support Client Directives in Prisma plugin (@skip and @include)
+
+## 3.59.0
+
+### Minor Changes
+
+- 1bbd3d70: update model loader to cache query mappings and batch compatible queries to reduce
+  likelyhood of prisma deoptimization
+
+## 3.58.0
+
+### Minor Changes
+
+- 4ebfa27b: Add prismaInterfaceField(s) method
+
+### Patch Changes
+
+- 4ebfa27b: Fix bug that ignored differences in Date values when checking compatability between
+  selections
+
+## 3.57.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
+## 3.56.1
+
+### Patch Changes
+
+- 016011f2: Fix custom descriptions in t.expose methods
+
+## 3.56.0
+
+### Minor Changes
+
+- Fix unused query check for prismaConnections
+
+## 3.55.0
+
+### Minor Changes
+
+- 39237239: Add builder.prismaInterface to allow interface variants of a prisma model
+
+## 3.54.0
+
+### Minor Changes
+
+- 7494da05: Add `onUnusedQuery` option to the prisma plugin options
+
+## 3.53.0
+
+### Minor Changes
+
+- 5d3f7b97: Improve inference for t.expose methods on prisma field builder
+
+## 3.52.0
+
+### Minor Changes
+
+- 624f2d05: Add optimizations for nodes field on connections
+
+## 3.51.1
+
+### Patch Changes
+
+- e8139e73: Fixed a bug where totalCount was not selected correctly when selected through a fragment
+
+## 3.51.0
+
+### Minor Changes
+
+- dbdb6f03: Fix compatability with prisma@4.13.*
+
+## 3.50.1
+
+### Patch Changes
+
+- 5b6007cd: Prevent unavailable prisma CreateInput types from being referenced by pothos generated
+  types.
+
+## 3.50.0
+
+### Minor Changes
+
+- 27b0638d: Update plugin imports so that no named imports are imported from files with side-effects
+
+## 3.49.1
+
+### Patch Changes
+
+- b39e7eab: Fix bug where queryFromInfo would default to the wrong type when setting path without
+  also specifying a typeName
+
+## 3.49.0
+
+### Minor Changes
+
+- 0c042150: Allow globalConnectionFields to be overwritten on specific connections
+
+## 3.48.0
+
+### Minor Changes
+
+- b3259d3e: Make parent and args available in connection and edge fields of prisma connections
+
+## 3.47.3
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.47.2
+
+### Patch Changes
+
+- 14f8cd5c: Fix returning nulls from nullable prismaConnections
+
+## 3.47.1
+
+### Patch Changes
+
+- 80c62446: Fix issue with connection helpers and extendedWhereUnique
+
+## 3.47.0
+
+### Minor Changes
+
+- 5ea5ce24: Allow t.relatedConnection to override take, skip, and cursor in the query option
+
+## 3.46.0
+
+### Minor Changes
+
+- 1878d5d9: Allow readonly arrays in more places
+
+## 3.45.0
+
+### Minor Changes
+
+- e5295551: Add initial support for mutation input in prisma utils
+- 72bd678a: Add new prismaUtils feature flag to the generator
+
+## 3.44.0
+
+### Minor Changes
+
+- 07bf6d4f: Simplify how relations are defined in PrismaTypes
+- 93bd2842: Support typescript@5.0
+
+## 3.43.0
+
+### Minor Changes
+
+- e8d75349: - allow connection fields (edges / pageInfo) to be promises
+  - add completeValue helper to core for unwrapping MaybePromise values
+  - set nodes as null if edges is null and the field permits a null return
+
+## 3.42.0
+
+### Minor Changes
+
+- 384bc124: Add nullability option to prismaNode
+
+## 3.41.3
+
+### Patch Changes
+
+- 853f3cfb: Fix hasPreviousPage for connections using only last
+
+## 3.41.2
+
+### Patch Changes
+
+- 687c6e2d: Fix `last` when used without `before`
+
+## 3.41.1
+
+### Patch Changes
+
+- 592ffd3b: Fix name option for prismaNode
+
+## 3.41.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.40.3
+
+### Patch Changes
+
+- 372260ec: Fix bug that prevented prisma from correctly including selections when using the
+  directResult option from the errors plugin
+
+## 3.40.2
+
+### Patch Changes
+
+- 98c6e801: Fix issue when using path and typeName together in resolveQueryFromInfo
+
+## 3.40.1
+
+### Patch Changes
+
+- 5c6e0abb: Add placeholder generated file with instructions to run `prisma generate`
+
+## 3.40.0
+
+### Minor Changes
+
+- 75d13217: Export utils for formatting prisma cursors
+
+## 3.39.0
+
+### Minor Changes
+
+- c3db3bcd: Enable adding interfaces to connections and edges
+
+## 3.38.1
+
+### Patch Changes
+
+- 943cb073: import from @prisma/client/index.js for esm generated types
+
+## 3.38.0
+
+### Minor Changes
+
+- 41426ee7: Add export specifier and esm output for generated prisma types
+
+## 3.37.0
+
+### Minor Changes
+
+- 26774fa0: Rewrite prismaConnectionHelpers to properly work with indirect relations
+
+## 3.36.0
+
+### Minor Changes
+
+- 8841e861: Add builder.prismaObjectField(s) method to extend prisma objects and simplify defining
+  circular relationships
+- cd1c0502: Add support for nested lists
+- 99bc6574: Add initial support for reusable prisma connections
+
+## 3.35.8
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.35.7
+
+### Patch Changes
+
+- b6be576d: Fix typing for nullable prisma connections
+
+## 3.35.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.35.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.35.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.35.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.35.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.35.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.35.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.34.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.34.0
+
+### Minor Changes
+
+- a76616e0: Add prismaFieldWithInput method
+
+## 3.33.0
+
+### Minor Changes
+
+- cf93c7c9: Fix some edge cases with how option objects become optional when no arguments are
+  required
+
+## 3.32.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.31.1
+
+### Patch Changes
+
+- 47fea5ed: Fix: add .ts extension to filename for generated prisma fields
+
+## 3.31.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
+## 3.30.0
+
+### Minor Changes
+
+- 521cde32: Improve how default output location for prisma types is calculated
+
+## 3.29.0
+
+### Minor Changes
+
+- 76d50bb4: Fix import of cjs graphql file in esm pothos
+
+## 3.28.0
+
+### Minor Changes
+
+- 390e74a7: Add `idFieldOptions` to relay plugin options
+
+## 3.27.2
+
+### Patch Changes
+
+- 193ac71a: Support `fullTextSearch` types (#553)
+
+## 3.27.1
+
+### Patch Changes
+
+- 222298f0: update curor type on query arg of prismaConnections
+
+## 3.27.0
+
+### Minor Changes
+
+- c5b1e2d3: move addBrand and hasBrand from PrismaNodeRef to PrismaObjectRef so it can be used with
+  all prisma objects
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
+## 3.26.0
+
+### Minor Changes
+
+- 5423703a: expose queryFromInfo from prisma plugin
+
+## 3.25.0
+
+### Minor Changes
+
+- 82596ec2: remove duplicate Fields from generated prisma types
+
+## 3.24.0
+
+### Minor Changes
+
+- 5e71c283: update queryFromInfo to support indirect paths
+
+## 3.23.0
+
+### Minor Changes
+
+- 33789284: Update cursor encoding to work in deno
+- 33789284: Fix default connection size when using "before"
+- 33789284: Support setting max and default cursor sizes based in args or context
+
+## 3.22.0
+
+### Minor Changes
+
+- 13216a3d: remove all remaining circular imports
+
+## 3.21.2
+
+### Patch Changes
+
+- c102f522: Fix withAuth on prismaObject fields builders
+
+## 3.21.1
+
+### Patch Changes
+
+- a02b25c2: Fix regression in compatibility between prisma and simple objects plugins"
+
+## 3.21.0
+
+### Minor Changes
+
+- 3ead60ae: Add option to use comments from prisma schema as graphql descriptions
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
+## 3.20.0
+
+### Minor Changes
+
+- f7f74585: Add option for configuring name of id field for relay nodes
+
+## 3.19.0
+
+### Minor Changes
+
+- 6382f65b: Fix types when using prismaField with `select` on a PrismaObject
+
+## 3.18.0
+
+### Minor Changes
+
+- 360836e5: Fix issue with prismaField not inferring parent thpe for subscriptions
+
+## 3.17.0
+
+### Minor Changes
+
+- c50b9197: Support BigInt cursors
+
+## 3.16.0
+
+### Minor Changes
+
+- 86c16787: Allow dmmf to be passed from Prisma.dmmf
+
+## 3.15.0
+
+### Minor Changes
+
+- dad7fb43: Fix typing for fallback resolvers on relation fields, and correclty pass all query
+  properties for relatedConnections
+
+## 3.14.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.13.2
+
+### Patch Changes
+
+- f58ad8fa: Fix type error introduced by withAuth helper
+
+## 3.13.1
+
+### Patch Changes
+
+- 04ed2b0c: Fix args in plugin methods on connection fields sometimes not being typed correctly
+
+## 3.13.0
+
+### Minor Changes
+
+- 7311904e: Support uniqueIndexes as connection cursors
+- 7311904e: Add withAuth method to return a field builder to allow custom auth context with other
+  plugin methods
+- 7311904e: Use findUniqueOrThrow rather than rejectOnNotFound if available
+
+### Patch Changes
+
+- 7311904e: Fix connection with empty select
+- 7311904e: Update dev deps
+
+## 3.12.1
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
+## 3.12.0
+
+### Minor Changes
+
+- 4d414fb5: Add support for prisma@4
+
+## 3.11.0
+
+### Minor Changes
+
+- 79e69c2b: Add resolveCursorConnection helper for relay plugin
+
+## 3.10.0
+
+### Minor Changes
+
+- 384b0fb6: Make findUnique optional by defaulting to id/unique fields defined in prisma schema
+
+## 3.9.0
+
+### Minor Changes
+
+- e090a835: Add fieldWithSelection method to support indirect relions
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 3.8.0
+
+### Minor Changes
+
+- 4154edc9: Add isNull option to prisma variant fields
+
+## 3.7.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.6.1
+
+### Patch Changes
+
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
+## 3.6.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- ce1063e3: Fix issue with fields selects when created created with functions
+
+## 3.5.0
+
+### Minor Changes
+
+- 05163ca5: Add support for dynamically loading prisma client and selecting counts in field level
+  selects"
+
+## 3.4.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+## 3.3.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
+## 3.2.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.1.2
+
+### Patch Changes
+
+- 1bf0cd00: Add typescript version check for prisma generator
+
+## 3.1.1
+
+### Patch Changes
+
+- 86718e08: Make lookups on extensions objects compatible with older graphql versions
+
+## 3.1.0
+
+### Minor Changes
+
+- 8add0378: Add `totalCount` option to `prismaConnection`
+
+## 3.0.0
+
+### Minor Changes
+
+- 9b6353d4: Use Promise.resolve instead of setTimeout to batch fallback operations
+
+## 0.19.0
+
+### Minor Changes
+
+- cf4a2d14: Add support for using selects instead of includes in queries
+
+## 0.18.0
+
+### Minor Changes
+
+- ad8d119b: Add support for composite ids as cursors in connections
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
+## 0.17.2
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 0.17.1
+
+### Patch Changes
+
+- c288534e: correctly load type includes when resolving prismaNodes
+
+## 0.17.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 0.16.3
+
+### Patch Changes
+
+- ab4a9ae4: Fix some type compatibility issues when skipLibCheck is false
+
+## 0.16.2
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 0.16.1
+
+### Patch Changes
+
+- b58ee414: Fix primaNode variants
+
+## 0.16.0
+
+### Minor Changes
+
+- 044396ea: Add support for multiple variants of the same prisma model
+
+## 0.15.2
+
+### Patch Changes
+
+- a01abb7f: Fix compatability between prisma and auth plugins
+
+## 0.15.1
+
+### Patch Changes
+
+- ce585cca: fix Prisma object parent shape when combined with other plugins
+
+## 0.15.0
+
+### Minor Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 0.14.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 0.13.3
 
 ### Patch Changes
@@ -151,7 +1069,7 @@
   You will need to remove PrismaClient from the builder types, so your builder setup now looks like:
 
   ```typescript
-  import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
+  import PrismaPlugin, { PrismaTypes } from "@giraphql/plugin-prisma";
 
   export default new SchemaBuilder<{}>({
     prisma: {
@@ -167,9 +1085,9 @@
   builder.prismaObject(prisma.post, {
     findUnique: (post) => ({ id: post.id }),
     fields: (t) => ({
-      id: t.exposeID('id'),
-      title: t.exposeString('title'),
-      author: t.relation('author'),
+      id: t.exposeID("id"),
+      title: t.exposeString("title"),
+      author: t.relation("author"),
     }),
   });
 
@@ -178,9 +1096,8 @@
       me: t.prismaField({
         type: prisma.user,
         resolve: async (query, root, args, ctx, info) =>
-          prisma.user.findUnique({
+          prisma.user.findUniqueOrThrow({
             ...query,
-            rejectOnNotFound: true,
             where: { id: ctx.userId },
           }),
       }),

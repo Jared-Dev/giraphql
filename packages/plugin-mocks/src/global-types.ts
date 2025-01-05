@@ -1,11 +1,12 @@
-import { SchemaTypes } from '@giraphql/core';
-import { ResolverMap } from './types';
-import { MocksPlugin } from '.';
+import type { SchemaTypes } from '@pothos/core';
+import type { ResolverMap } from './types';
+
+import type { PothosMocksPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      mocks: MocksPlugin<Types>;
+      mocks: PothosMocksPlugin<Types>;
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {

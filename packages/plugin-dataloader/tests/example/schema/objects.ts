@@ -1,6 +1,8 @@
+import { resolveArrayConnection } from '@pothos/plugin-relay';
+import { GraphQLError } from 'graphql';
 import { rejectErrors } from '../../../src';
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import {
   countCall,
   nullableUsersCounts,
@@ -14,13 +16,15 @@ import { TestInterface } from './interfaces';
 
 export const User = builder.loadableObject('User', {
   interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
+  isTypeOf: () => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, usersCounts, keys.length);
 
     return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+      keys.map((id) =>
+        Number(id) > 0 ? { id: Number(id) } : new GraphQLError(`Invalid ID ${id}`),
+      ),
     );
   },
   fields: (t) => ({
@@ -28,9 +32,65 @@ export const User = builder.loadableObject('User', {
   }),
 });
 
+const UserFriendsConnection = builder.connectionObject({
+  type: User,
+  name: 'UserFriendsConnection',
+});
+
+builder.objectFields(User, (t) => ({
+  friends: t.loadable({
+    type: UserFriendsConnection,
+    byPath: true,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    load: async (users: { id: number }[], context, args) => {
+      context.countCall('User.friends');
+
+      return users.map((user) => {
+        const friends: { objType: 'UserNode'; id: number }[] = [];
+        for (let i = 0; i < 5; i += 1) {
+          friends.push({ objType: 'UserNode', id: Number.parseInt(`${user.id}${i}`, 10) });
+        }
+        return resolveArrayConnection({ args }, friends);
+      });
+    },
+    resolve: (user) => user,
+  }),
+  groupFriends: t.loadableGroup({
+    byPath: true,
+    type: User,
+    args: {
+      limit: t.arg.int({
+        defaultValue: 5,
+        required: true,
+      }),
+    },
+    load: (ids, context, args) => {
+      const friends = [];
+
+      context.countCall('User.groupFriends');
+
+      for (const id of ids) {
+        for (let i = 0; i < args.limit; i += 1) {
+          friends.push({ id: Number.parseInt(`${id}${i}`, 10) });
+        }
+      }
+
+      return Promise.resolve(friends);
+    },
+    group: (user) => {
+      const id = typeof user === 'string' ? user : String(user.id);
+
+      return Number.parseInt(id.slice(0, -1), 10);
+    },
+    resolve: (user) => user.id,
+  }),
+}));
+
 const PreloadedUser = builder.loadableObject('PreloadedUser', {
   interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
+  isTypeOf: () => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, preloadedUsersCounts, keys.length);
@@ -46,7 +106,7 @@ const PreloadedUser = builder.loadableObject('PreloadedUser', {
 
 const PreloadedUserToKey = builder.loadableObject('PreloadedUserToKey', {
   interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
+  isTypeOf: () => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, preloadedUsersToKeyCounts, keys.length);
@@ -63,7 +123,7 @@ const PreloadedUserToKey = builder.loadableObject('PreloadedUserToKey', {
 
 const SortedUser = builder.loadableObject('SortedUser', {
   interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
+  isTypeOf: () => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, sortedUsersCounts, keys.length);
@@ -81,7 +141,7 @@ const SortedUser = builder.loadableObject('SortedUser', {
 
 const SortedUserToKey = builder.loadableObject('SortedUserToKey', {
   interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
+  isTypeOf: () => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, sortedUsersToKeyCounts, keys.length);
@@ -106,14 +166,14 @@ builder.objectField(User, 'self', (t) =>
   t.loadable({
     type: User,
     load: (ids: number[]) => Promise.resolve(ids.map((id) => ({ id }))),
-    resolve: (user, args) => user.id,
+    resolve: (user) => user.id,
   }),
 );
 
 builder.queryField('addOnUser', (t) =>
   t.field({
     type: User,
-    resolve: (parent, args, context) => {
+    resolve: (_parent, _args, context) => {
       const loader = User.getDataloader(context);
 
       return loader.load('123');
@@ -121,20 +181,23 @@ builder.queryField('addOnUser', (t) =>
   }),
 );
 
-const NullableUser = builder.loadableObject('NullableUser', {
-  interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
-  loaderOptions: { maxBatchSize: 20 },
-  load: (keys: string[], context: ContextType) => {
-    countCall(context, nullableUsersCounts, keys.length);
-    return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
-    );
-  },
-  fields: (t) => ({
-    id: t.exposeID('id', {}),
-  }),
-});
+const NullableUser = builder
+  .loadableObjectRef('NullableUser', {
+    loaderOptions: { maxBatchSize: 20 },
+    load: (keys: string[], context: ContextType) => {
+      countCall(context, nullableUsersCounts, keys.length);
+      return Promise.resolve(
+        keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
+      );
+    },
+  })
+  .implement({
+    isTypeOf: () => true,
+    interfaces: [TestInterface],
+    fields: (t) => ({
+      id: t.exposeID('id', {}),
+    }),
+  });
 
 builder.queryFields((t) => ({
   user: t.field({
@@ -143,7 +206,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   userWithErrors: t.field({
     errors: {},
@@ -152,7 +215,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '-1',
+    resolve: (_root, args) => args.id ?? '-1',
   }),
   users: t.field({
     type: [User],
@@ -172,7 +235,7 @@ builder.queryFields((t) => ({
     args: {
       ids: t.arg.stringList(),
     },
-    resolve: (root, args) => {
+    resolve: (_root, args) => {
       if (!args.ids) {
         throw new Error('Ids required');
       }
@@ -186,7 +249,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   preloadedUserToKey: t.field({
     type: PreloadedUserToKey,
@@ -194,7 +257,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   preloadedUsers: t.field({
     type: [PreloadedUser],
@@ -224,7 +287,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   sortedUserToKey: t.field({
     type: SortedUserToKey,
@@ -232,7 +295,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '1',
+    resolve: (_root, args) => args.id ?? '1',
   }),
   sortedUsers: t.field({
     type: [SortedUser],
@@ -262,7 +325,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.string(),
     },
-    resolve: (root, args) => args.id ?? '-1',
+    resolve: (_root, args) => args.id ?? '-1',
   }),
   nullableUsers: t.field({
     type: [NullableUser],
@@ -277,23 +340,23 @@ builder.queryFields((t) => ({
   }),
   fromContext1: t.field({
     type: User,
-    resolve: (root, args, { userLoader }) => userLoader.load('123'),
+    resolve: (_root, _args, { userLoader }) => userLoader.load('123'),
   }),
   fromContext2: t.field({
     type: User,
-    resolve: (root, args, { getLoader }) => getLoader(User).load('456'),
+    resolve: (_root, _args, { getLoader }) => getLoader(User).load('456'),
   }),
   fromContext3: t.field({
     type: User,
-    resolve: (root, args, { load }) => load(User, '789'),
+    resolve: (_root, _args, { load }) => load(User, '789'),
   }),
   fromContext4: t.field({
     type: [User],
-    resolve: (root, args, { loadMany }) => rejectErrors(loadMany(User, ['123', '456'])),
+    resolve: (_root, _args, { loadMany }) => rejectErrors(loadMany(User, ['123', '456'])),
   }),
   fromContext5: t.field({
     type: [User],
-    resolve: (root, args, context) =>
+    resolve: (_root, _args, context) =>
       rejectErrors(User.getDataloader(context).loadMany(['123', '345'])),
   }),
 }));

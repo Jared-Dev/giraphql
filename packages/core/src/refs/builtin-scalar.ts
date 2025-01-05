@@ -1,7 +1,8 @@
-import { GraphQLScalarType } from 'graphql';
-import ScalarRef from './scalar';
+import type { GraphQLScalarType } from 'graphql';
+import type { SchemaTypes } from '../types';
+import { ScalarRef } from './scalar';
 
-export default class BuiltinScalarRef<T, U> extends ScalarRef<T, U> {
+export class BuiltinScalarRef<Types extends SchemaTypes, T, U> extends ScalarRef<Types, T, U> {
   type;
 
   constructor(type: GraphQLScalarType) {

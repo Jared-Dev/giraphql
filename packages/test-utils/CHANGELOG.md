@@ -1,5 +1,187 @@
 # @giraphql/test-utils
 
+## 2.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 2.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+
+## 2.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+
+## 2.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+
+## 2.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+## 1.4.9
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 1.4.8
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 1.4.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 1.4.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 1.4.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 1.4.4
+
+### Patch Changes
+
+- d350f842: update dev deps
+
+## 1.4.3
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 1.4.2
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 1.4.1
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 1.4.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 1.4.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 1.3.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 1.3.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 1.2.3
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
+## 1.2.2
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 1.2.1
+
+### Patch Changes
+
+- 4b24982f: Update dev dependencies
+
+## 1.2.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 1.1.1
+
+### Patch Changes
+
+- 971f1aad: Update dev dependencies
+
+## 1.1.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 1.0.2
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 1.0.1
+
+### Patch Changes
+
+- ab4a9ae4: Fix some type compatibility issues when skipLibCheck is false
+
+## 1.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 0.6.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 0.5.1
 
 ### Patch Changes

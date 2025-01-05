@@ -1,19 +1,41 @@
-import * as fs from 'fs/promises';
-import { statSync, existsSync } from 'fs';
-import * as path from 'path';
+import { existsSync, statSync } from 'node:fs';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import * as ts from 'typescript';
 
 const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
-const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma', 'test-utils'];
-const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
-const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore'];
+const excludedPackages = [
+  'converter',
+  'deno',
+  'plugin-example',
+  'plugin-prisma',
+  'plugin-prisma-utils',
+  'test-utils',
+  'plugin-federation',
+  'tracing-opentelemetry',
+  'tracing-sentry',
+  'tracing-newrelic',
+  'tracing-xray',
+];
+const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules', 'prisma'];
+const excludedFiles = [
+  'package.json',
+  'tsconfig.json',
+  'tsconfig.type.json',
+  'tsconfig.tsbuildinfo',
+  'tsconfig.type.tsbuildinfo',
+  'CHANGELOG.md',
+  '.npmignore',
+  'babel.config.js',
+];
 
 const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',
   zod: 'https://cdn.skypack.dev/zod@v1.11.17?dts',
   dataloader: 'https://cdn.skypack.dev/dataloader?dts',
-  '@giraphql/core': './core/index.ts',
+  '@pothos/core': './core/index.ts',
+  '@pothos/plugin-directives': './plugin-directives/index.ts',
 };
 
 type LoadedFile = {
@@ -47,7 +69,7 @@ async function getFiles(dir: string, root = false): Promise<string[]> {
       }),
   );
 
-  return paths.flatMap((entry) => entry);
+  return paths.flat();
 }
 
 async function getPackages() {
@@ -72,12 +94,12 @@ async function loadFile(file: string): Promise<LoadedFile> {
       path: newPath,
       content: Buffer.from(`// @ts-nocheck\n${printer.printFile(result.transformed[0])}`, 'utf8'),
     };
-  } else {
-    return {
-      path: newPath,
-      content: await fs.readFile(file),
-    };
   }
+
+  return {
+    path: newPath,
+    content: await fs.readFile(file),
+  };
 }
 
 async function getAllFiles() {
@@ -87,7 +109,7 @@ async function getAllFiles() {
     projects.map((dir) => getFiles(path.join(packageDir, dir), true)),
   );
 
-  const files = results.flatMap((entry) => entry);
+  const files = results.flat();
   const modFiles = projects.map((dir) => ({
     path: path.join(targetDir, dir, 'mod.ts'),
     content: Buffer.from(modFile, 'utf8'),
@@ -96,7 +118,7 @@ async function getAllFiles() {
   return [...(await Promise.all(files.map((file) => loadFile(file)))), ...modFiles];
 }
 
-const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
+const importTransformer = (context) => {
   return (sourceFile) => {
     const visitor = (node: ts.Node): ts.Node => {
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
@@ -107,10 +129,11 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
 
           if (mod.startsWith('.')) {
             const modulePath = path.resolve(dirName, mod);
-            const tsPath = modulePath + '.ts';
-            const dtsPath = modulePath + '.d.ts';
+            const tsPath = `${modulePath}.ts`;
+            const dtsPath = `${modulePath}.d.ts`;
 
             const stat = existsSync(modulePath) && statSync(modulePath);
+            // biome-ignore lint/complexity/useOptionalChain: <explanation>
             if (stat && stat.isDirectory()) {
               mod = path.join(modulePath, 'index.ts');
             } else if (existsSync(tsPath)) {
@@ -137,20 +160,20 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           if (ts.isImportDeclaration(node)) {
             return ts.factory.updateImportDeclaration(
               node,
-              node.decorators,
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
+              undefined,
             );
           }
 
           return ts.factory.updateExportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.isTypeOnly,
             node.exportClause,
             ts.factory.createStringLiteral(mod, true),
+            undefined,
           );
         }
       }

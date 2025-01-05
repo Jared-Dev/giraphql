@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, BuildCache, FieldRef, GiraphQLOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, BuildCache, FieldRef, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
 import SubscriptionCache from './cache.ts';
 import { getFieldSubscribe } from './create-field-data.ts';
 import SubscriptionManager from './manager/index.ts';
@@ -9,13 +9,13 @@ import resolveWithCache from './resolve-with-cache.ts';
 const DEFAULT_DEBOUNCE_DELAY = 10;
 export * from './types.ts';
 export * from './utils.ts';
-const pluginName = "smartSubscriptions" as const;
+const pluginName = "smartSubscriptions";
 export default pluginName;
-export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<Types, {
+export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<Types, {
     cache?: SubscriptionCache<Types>;
 }> {
     debounceDelay: number | null;
-    smartSubscriptionsToQueryField = new Map<string, Extract<GiraphQLOutputFieldConfig<Types>, {
+    smartSubscriptionsToQueryField = new Map<string, Extract<PothosOutputFieldConfig<Types>, {
         kind: "Query";
     }>>();
     subscribe: (name: string, context: Types["Context"], cb: (err: unknown, data: unknown) => void) => Promise<void> | void;
@@ -25,14 +25,18 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         this.subscribe = this.builder.options.smartSubscriptions.subscribe;
         this.unsubscribe = this.builder.options.smartSubscriptions.unsubscribe;
         this.debounceDelay =
-            this.builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
+            this.builder.options.smartSubscriptions.debounceDelay === null
+                ? null
+                : DEFAULT_DEBOUNCE_DELAY;
     }
-    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-        if (fieldConfig.kind === "Query" && fieldConfig.giraphqlOptions.smartSubscription) {
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+        if (fieldConfig.kind === "Query" && fieldConfig.pothosOptions.smartSubscription) {
             this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
             this.builder.subscriptionField(fieldConfig.name, (t) => t.field({
-                ...fieldConfig.giraphqlOptions,
-                resolve: (parent, args, context, info) => (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
+                ...fieldConfig.pothosOptions,
+                resolve: (parent, args, context, info) => 
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
                 subscribe: (parent, args, context, info) => {
                     const manager = new SubscriptionManager({
                         value: parent,
@@ -61,20 +65,20 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
                         },
                     };
                 },
-            }) as FieldRef<unknown>);
+            }) as FieldRef<Types, unknown>);
         }
         return fieldConfig;
     }
     override createRequestData(context: Types["Context"]) {
         return {};
     }
-    override wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"]>, field: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"]> {
+    override wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"]>, field: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"]> {
         let canRefetch = false;
         if (field.graphqlKind === "Object" &&
             field.kind !== "Query" &&
             field.kind !== "Subscription" &&
             field.kind !== "Mutation") {
-            canRefetch = field.giraphqlOptions.canRefetch ?? false;
+            canRefetch = field.pothosOptions.canRefetch ?? false;
         }
         const subscribe = getFieldSubscribe(field, this);
         return (parent, args, context, info) => {
@@ -89,7 +93,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         return resolveType;
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLSmartSubscriptionsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosSmartSubscriptionsPlugin);
 export { default as SubscriptionCache } from './cache.ts';
 export { default as CacheNode } from './cache-node.ts';
 export { default as SubscriptionManager } from './manager/index.ts';

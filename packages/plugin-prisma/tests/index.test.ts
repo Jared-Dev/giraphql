@@ -39,25 +39,221 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
+      {
+        "data": {
+          "me": {
             "id": "VXNlcjox",
           },
         },
       }
-      `);
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "where": Object {
+          "args": {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('skips fields based on @skip and @include directives', async () => {
+    const query = gql`
+      query {
+        me {
+          id
+          profile @skip(if: true) {
+            bio
+          }
+          posts(limit: 1) @include(if: false) {
+            id
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "id": "VXNlcjox",
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('includes fields based on @skip and @include directives', async () => {
+    const query = gql`
+      query {
+        me {
+          id
+          profile @skip(if: false) {
+            bio
+          }
+          posts(limit: 1) @include(if: true) {
+            id
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "id": "VXNlcjox",
+            "posts": [
+              {
+                "id": "250",
+              },
+            ],
+            "profile": {
+              "bio": "Debitis perspiciatis unde sunt.",
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 1,
+                "where": undefined,
+              },
+              "profile": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries decimals', async () => {
+    const query = gql`
+      query {
+        me {
+          posts(limit: 2) {
+            id
+            views
+            viewsFloat
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "posts": [
+              {
+                "id": "250",
+                "views": "0",
+                "viewsFloat": 0,
+              },
+              {
+                "id": "249",
+                "views": "0",
+                "viewsFloat": 0,
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 2,
+                "where": undefined,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -81,13 +277,13 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "users": Array [
-            Object {
+      {
+        "data": {
+          "users": [
+            {
               "id": "VXNlcjox",
             },
-            Object {
+            {
               "id": "VXNlcjoy",
             },
           ],
@@ -96,18 +292,18 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "take": 2,
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('queries for record with nested relations', async () => {
@@ -134,40 +330,42 @@ Array [
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 10,
+                "where": undefined,
               },
             },
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
+            "where": {
+              "id": 1,
             },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "take": 10,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('queries for list with nested relations', async () => {
@@ -199,39 +397,41 @@ Array [
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 10,
+                "where": undefined,
               },
+              "profile": true,
             },
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
-            },
+            "take": 2,
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "take": 10,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-        "profile": true,
-      },
-      "take": 2,
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
   it('queries with arguments and aliases', async () => {
     const query = gql`
@@ -262,59 +462,62 @@ Array [
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": true,
-            "comments": Object {
-              "include": Object {
-                "author": true,
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": true,
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 10,
+                "where": undefined,
               },
             },
+            "where": {
+              "id": 1,
+            },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "take": 10,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": true,
-        "comments": Object {
-          "include": Object {
-            "author": true,
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "orderBy": {
+              "createdAt": "asc",
+            },
+            "take": 10,
+            "where": {
+              "authorId": 1,
+            },
           },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "orderBy": Object {
-        "createdAt": "asc",
-      },
-      "take": 10,
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('queries with variables and alieases', async () => {
@@ -352,59 +555,62 @@ Array [
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": true,
-            "comments": Object {
-              "include": Object {
-                "author": true,
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": true,
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 10,
+                "where": undefined,
               },
             },
+            "where": {
+              "id": 1,
+            },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "take": 10,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": true,
-        "comments": Object {
-          "include": Object {
-            "author": true,
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "author": true,
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "orderBy": {
+              "createdAt": "asc",
+            },
+            "take": 10,
+            "where": {
+              "authorId": 1,
+            },
           },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "orderBy": Object {
-        "createdAt": "asc",
-      },
-      "take": 10,
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('queries through non-prisma fields', async () => {
@@ -432,62 +638,62 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "me": Object {
-      "profileThroughManualLookup": Object {
-        "user": Object {
-          "profile": Object {
-            "bio": "Sequi minus inventore itaque similique et.",
+      {
+        "data": {
+          "me": {
+            "profileThroughManualLookup": {
+              "user": {
+                "profile": {
+                  "bio": "Debitis perspiciatis unde sunt.",
+                },
+              },
+            },
           },
         },
-      },
-    },
-  },
-}
-`);
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "where": Object {
+          "args": {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
+          "args": {
+            "select": {
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [
+          "dataPath": [
             "select",
             "profile",
           ],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -535,51 +741,181 @@ Object {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "usersWithError": Object {
-      "__typename": "QueryUsersWithErrorSuccess",
-      "data": Array [
-        Object {
-          "name": "Maurine Ratke",
-          "profileWithErrors": Object {
-            "data": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
-              "user": Object {
-                "id": "VXNlcjox",
+      {
+        "data": {
+          "usersWithError": {
+            "__typename": "QueryUsersWithErrorSuccess",
+            "data": [
+              {
+                "name": "Maurine Ratke",
+                "profileWithErrors": {
+                  "data": {
+                    "bio": "Debitis perspiciatis unde sunt.",
+                    "user": {
+                      "id": "VXNlcjox",
+                    },
+                  },
+                },
               },
-            },
+              {
+                "name": "Kyle Schoen",
+                "profileWithErrors": null,
+              },
+            ],
           },
         },
-        Object {
-          "name": "Nichole Koss",
-          "profileWithErrors": null,
-        },
-      ],
-    },
-  },
-}
-`);
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": true,
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
+                  "user": true,
+                },
+              },
+            },
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries direct results with errors plugin', async () => {
+    const query = gql`
+      query {
+        usersWithError {
+          __typename
+          ... on Error {
+            message
+          }
+          ... on QueryUsersWithErrorSuccess {
+            data {
+              name
+              directProfileWithErrors {
+                ... on Error {
+                  message
+                }
+                ... on Profile {
+                  bio
+                  user {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+      variableValues: {
+        oldest: true,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "usersWithError": {
+            "__typename": "QueryUsersWithErrorSuccess",
+            "data": [
+              {
+                "directProfileWithErrors": {
+                  "bio": "Debitis perspiciatis unde sunt.",
+                  "user": {
+                    "id": "VXNlcjox",
+                  },
+                },
+                "name": "Maurine Ratke",
+              },
+              {
+                "directProfileWithErrors": null,
+                "name": "Kyle Schoen",
+              },
+            ],
           },
         },
-      },
-      "take": 2,
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
+                  "user": true,
+                },
+              },
+            },
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('diffs date arguments from field aliases', async () => {
+    const query = gql`
+      query {
+        users {
+          a: posts(limit: 2, createdAt: "2012-12-12T00:00:00.749Z") {
+            id
+          }
+          b: posts(limit: 2, createdAt: "2012-12-12T00:00:00.249Z") {
+            id
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "users": [
+            {
+              "a": [],
+              "b": [
+                {
+                  "id": "250",
+                },
+              ],
+            },
+            {
+              "a": [
+                {
+                  "id": "500",
+                },
+              ],
+              "b": [],
+            },
+          ],
+        },
+      }
+    `);
   });
 });

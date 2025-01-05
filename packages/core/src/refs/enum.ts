@@ -1,17 +1,28 @@
-import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import {
+  type InputRef,
+  type OutputRef,
+  type PothosEnumTypeConfig,
+  type SchemaTypes,
+  inputShapeKey,
+  outputShapeKey,
+} from '../types';
+import { BaseTypeRef } from './base';
 
-export default class EnumRef<T, U = T>
-  extends BaseTypeRef
-  implements OutputRef, InputRef, GiraphQLSchemaTypes.EnumRef<T, U>
+export class EnumRef<Types extends SchemaTypes, T, U = T>
+  extends BaseTypeRef<Types, PothosEnumTypeConfig>
+  implements OutputRef<T>, InputRef<U>, PothosSchemaTypes.EnumRef<Types, T, U>
 {
   override kind = 'Enum' as const;
 
-  [outputShapeKey]: T;
+  $inferType!: T;
 
-  [inputShapeKey]: U;
+  $inferInput!: U;
 
-  constructor(name: string) {
-    super('Enum', name);
+  [outputShapeKey]!: T;
+
+  [inputShapeKey]!: U;
+
+  constructor(name: string, config?: PothosEnumTypeConfig) {
+    super('Enum', name, config);
   }
 }

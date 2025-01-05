@@ -1,17 +1,18 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
+import ComplexityPlugin from '@pothos/plugin-complexity';
 import RelayPlugin from '../../../src';
-import { Poll } from './data';
-import { ContextType } from './types';
+import type { Poll } from './data';
+import type { ContextType } from './types';
 
-interface UserSchemaTypes {
+export default new SchemaBuilder<{
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
   };
   Context: ContextType;
-}
-
-export default new SchemaBuilder<UserSchemaTypes>({
-  plugins: [RelayPlugin],
+  Defaults: 'v3';
+}>({
+  defaults: 'v3',
+  plugins: [RelayPlugin, ComplexityPlugin],
   relayOptions: {},
 });

@@ -1,49 +1,12 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { BasePlugin } from '../plugins';
-
-import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '..';
-
-/**
- * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
- */
-export interface ResolveHooks<Types extends SchemaTypes, T> {
-  overwriteResolve?: (
-    parent: unknown,
-    args: {},
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-    originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
-  ) => unknown;
-  onResolve?: (value: unknown) => MaybePromise<void>;
-  onChild?: (
-    child: unknown,
-    index: number | null,
-    type: GiraphQLObjectTypeConfig,
-    update: (value: unknown) => void,
-  ) => MaybePromise<T | null>;
-  onWrappedResolve?: (wrapped: unknown) => MaybePromise<void>;
-}
-
-/**
- * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
- */
-export interface SubscribeHooks<Types extends SchemaTypes, T> {
-  overwriteSubscribe?: (
-    parent: unknown,
-    args: {},
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-    originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
-  ) => unknown;
-  onSubscribe?: (value: unknown) => MaybePromise<void>;
-  onValue?: (child: unknown) => MaybePromise<T | null>;
-}
+import type { BuildCache } from '../build-cache';
+import type { BasePlugin } from '../plugins/plugin';
+import type { SchemaTypes } from './schema-types';
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {
-  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: new (
+  [K in keyof PothosSchemaTypes.Plugins<SchemaTypes>]: new (
     buildCache: BuildCache<SchemaTypes>,
     name: K,
-  ) => BasePlugin<Types> & GiraphQLSchemaTypes.Plugins<Types>[K];
+  ) => BasePlugin<Types> & PothosSchemaTypes.Plugins<Types>[K];
 };
 
 export type PluginMap<Types extends SchemaTypes> = {

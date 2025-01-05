@@ -1,11 +1,12 @@
-import { SchemaTypes } from '../types';
-import RootFieldBuilder from './root';
+import type { SchemaTypes } from '../types';
+import { RootFieldBuilder } from './root';
 
-export default class MutationFieldBuilder<
-  Types extends SchemaTypes,
+export class MutationFieldBuilder<Types extends SchemaTypes, ParentShape> extends RootFieldBuilder<
+  Types,
   ParentShape,
-> extends RootFieldBuilder<Types, ParentShape, 'Mutation'> {
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super('Mutation', builder, 'Mutation', 'Object');
+  'Mutation'
+> {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
+    super(builder, 'Mutation', 'Object');
   }
 }

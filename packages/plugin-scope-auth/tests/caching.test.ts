@@ -38,7 +38,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -48,22 +48,22 @@ describe('caching', () => {
       expect(counter.counts.get('syncPermission')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
+        {
+          "data": {
             "a1": "ok",
             "a2": "ok",
             "b1": null,
             "b2": null,
-            "obj1": Object {
+            "obj1": {
               "a1": "ok",
               "a2": "ok",
             },
-            "obj2": Object {
+            "obj2": {
               "b1": null,
               "b2": null,
             },
           },
-          "errors": Array [
+          "errors": [
             [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
             [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
             [GraphQLError: Not authorized to read fields for ObjForSyncPermFn],
@@ -98,7 +98,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -108,21 +108,25 @@ describe('caching', () => {
       expect(counter.counts.get('asyncPermission')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
+        {
+          "data": {
             "a1": "ok",
             "a2": "ok",
             "b1": null,
             "b2": null,
-            "obj1": Object {
+            "obj1": {
               "a1": "ok",
               "a2": "ok",
             },
-            "obj2": null,
+            "obj2": {
+              "b1": null,
+              "b2": null,
+            },
           },
-          "errors": Array [
+          "errors": [
             [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
             [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
+            [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
             [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
           ],
         }
@@ -151,7 +155,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -161,18 +165,18 @@ describe('caching', () => {
       expect(counter.counts.get('ObjForSyncPermFn')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "obj1": Object {
+        {
+          "data": {
+            "obj1": {
               "a1": "ok",
               "a2": "ok",
             },
-            "obj2": Object {
+            "obj2": {
               "a1": null,
               "a2": null,
             },
           },
-          "errors": Array [
+          "errors": [
             [GraphQLError: Not authorized to read fields for ObjForSyncPermFn],
             [GraphQLError: Not authorized to read fields for ObjForSyncPermFn],
           ],
@@ -201,7 +205,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-roles': 'admin',
           }),
@@ -211,13 +215,13 @@ describe('caching', () => {
       expect(counter.counts.get('ObjForAdminAsyncFn')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "obj1": Object {
+        {
+          "data": {
+            "obj1": {
               "a1": "ok",
               "a2": "ok",
             },
-            "obj2": Object {
+            "obj2": {
               "a1": "ok",
               "a2": "ok",
             },
@@ -225,5 +229,41 @@ describe('caching', () => {
         }
       `);
     });
+  });
+
+  it('clears cache during request', async () => {
+    const query = gql`
+      query {
+        obj: ClearCache {
+          field
+        }
+      }
+    `;
+
+    const counter = new Counter();
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {
+        count: counter.count,
+        user: new User({
+          'x-user-id': '1',
+          'x-permissions': 'a',
+        }),
+      },
+    });
+
+    expect(counter.counts.get('authScopes')).toBe(2);
+
+    expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "obj": {
+              "field": "ok",
+            },
+          },
+        }
+      `);
   });
 });

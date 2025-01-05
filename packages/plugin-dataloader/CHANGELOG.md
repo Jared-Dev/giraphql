@@ -1,5 +1,326 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 10e364c: expose info when using byPath
+
+## 4.2.0
+
+### Minor Changes
+
+- 6a80a7c: Use builder.nodeRef in ImplementableLoadableNodeRef to avoid re-implementing node logic
+
+## 4.1.1
+
+### Patch Changes
+
+- 75f7830: Fix t.loadable with nullable: { items: true }
+
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [777f6de]
+  - @pothos/core@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
+## 3.19.0
+
+### Minor Changes
+
+- c84bfc4: Improve typing when returning errors from dataloader methods
+
+## 3.18.2
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.18.1
+
+### Patch Changes
+
+- 144041f: Fix cacheKey and small type issue for byPath option
+
+## 3.18.0
+
+### Minor Changes
+
+- 3e20fd4: Add byPath option to loadable field methods that groups by the path in the query rather
+  than the field. This allows the load method to access the fields args
+- 3e20fd4: Add a new loadableGroup method for easier batch loading of where-in style queries for
+  loadable lists
+
+## 3.17.2
+
+### Patch Changes
+
+- 9db5200: Improve handling of mismatched result sizes in dataloaders
+
+## 3.17.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.17.0
+
+### Minor Changes
+
+- 1878d5d9: Allow readonly arrays in more places
+
+## 3.16.0
+
+### Minor Changes
+
+- e8d75349: - allow connection fields (edges / pageInfo) to be promises
+  - add completeValue helper to core for unwrapping MaybePromise values
+  - set nodes as null if edges is null and the field permits a null return
+
+## 3.15.0
+
+### Minor Changes
+
+- 22041db0: Add default isTypeOf for loadableNode
+- 68c94e4f: Support parsing globalIDs for loadableNode
+
+## 3.14.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.13.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
+## 3.12.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.12.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.12.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.12.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.12.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.12.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.12.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.12.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.11.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+- aa18acb7: Fix nullable loadable fields
+
+## 3.11.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.10.0
+
+### Minor Changes
+
+- 390e74a7: Add `idFieldOptions` to relay plugin options
+
+## 3.9.0
+
+### Minor Changes
+
+- f7f74585: Add option for configuring name of id field for relay nodes
+
+## 3.8.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.7.1
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+
+## 3.7.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.6.2
+
+### Patch Changes
+
+- 6e4ccc7b: Fix loadable refs when used with builder.objectType
+
+## 3.6.1
+
+### Patch Changes
+
+- 971f1aad: Update dev dependencies
+
+## 3.6.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
+## 3.5.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.4.0
+
+### Minor Changes
+
+- c0bdbc1b: Add loadableObjectRef loadableInterfaceRef and loadableNodeRef
+
+## 3.3.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.3.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 3.2.0
+
+### Minor Changes
+
+- eb9c33b8: Add loadManyWithoutCache option to dataloader to avoid double caching in loadableNode
+
+## 3.1.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.1.0
+
+### Minor Changes
+
+- 7593d24f: Add loadableList method to dataloader plugin for handling one-to-many relations
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.20.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.19.3
 
 ### Patch Changes

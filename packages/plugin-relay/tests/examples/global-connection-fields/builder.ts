@@ -1,9 +1,9 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '../../../src';
-import { Poll } from './data';
-import { ContextType } from './types';
+import type { Poll } from './data';
+import type { ContextType } from './types';
 
-interface UserSchemaTypes {
+export default new SchemaBuilder<{
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
@@ -12,19 +12,23 @@ interface UserSchemaTypes {
   Connection: {
     totalCount: number;
   };
-}
-
-export default new SchemaBuilder<UserSchemaTypes>({
+  DefaultEdgesNullability: false;
+  DefaultNodeNullability: true;
+}>({
   plugins: [RelayPlugin],
-  relayOptions: {
+  relay: {
+    nodesOnConnection: true,
+    idFieldName: 'nodeId',
+    nodeFieldOptions: {
+      nullable: true,
+    },
+    edgesFieldOptions: {
+      nullable: false,
+    },
     clientMutationId: 'omit',
     cursorType: 'String',
-    nodeQueryOptions: {
-      description: 'node query',
-    },
-    nodesQueryOptions: {
-      description: 'nodes query',
-    },
+    nodeQueryOptions: false,
+    nodesQueryOptions: false,
     nodeTypeOptions: {
       description: 'node type',
     },

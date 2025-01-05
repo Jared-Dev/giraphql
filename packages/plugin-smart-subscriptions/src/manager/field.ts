@@ -1,9 +1,9 @@
-import { SchemaTypes } from '@giraphql/core';
-import CacheNode from '../cache-node';
-import { RegisterFieldSubscriptionOptions } from '../types';
+import type { SchemaTypes } from '@pothos/core';
+import type CacheNode from '../cache-node';
+import type { RegisterFieldSubscriptionOptions } from '../types';
 import BaseSubscriptionManager from './base';
 
-import { SubscriptionManager } from '..';
+import type SubscriptionManager from '.';
 
 export default class FieldSubscriptionManager<
   Types extends SchemaTypes,

@@ -17,20 +17,20 @@ describe('query', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
         }),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjWithSkipFields": Object {
+      {
+        "data": {
+          "ObjWithSkipFields": {
             "skip": null,
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve ObjWithSkipFields.skip],
         ],
       }
@@ -52,7 +52,7 @@ describe('query', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -60,15 +60,15 @@ describe('query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjWithIfaceSkipFields": Object {
+      {
+        "data": {
+          "ObjWithIfaceSkipFields": {
             "skipBoth": "ok",
             "skipIface": null,
             "skipType": null,
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for IfaceForAdmin],
           [GraphQLError: Not authorized to read fields for ObjWithIfaceSkipFields],
         ],

@@ -1,37 +1,57 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
   FieldRef,
+  InferredFieldOptionKeys,
   InputFieldMap,
   InputShapeFromFields,
+  MaybePromise,
   Normalize,
   Resolver,
   RootName,
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '@giraphql/core';
-import {
+} from '@pothos/core';
+import type {
+  AuthScopeMap,
+  ContextForAuth,
   FieldAuthScopes,
   FieldGrantScopes,
+  ForbiddenResult,
+  ReplaceContext,
   ScopeAuthInitializer,
   ScopeAuthPluginOptions,
   TypeAuthScopes,
   TypeGrantScopes,
+  UnauthorizedOptions,
 } from './types';
-import { ContextForAuth, GiraphQLScopeAuthPlugin } from '.';
+
+import type { PothosScopeAuthPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      scopeAuth: GiraphQLScopeAuthPlugin<Types>;
+      scopeAuth: PothosScopeAuthPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      scopeAuthOptions?: ScopeAuthPluginOptions;
+      scopeAuth: ScopeAuthPluginOptions<Types>;
+    }
+
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+      scopeAuth: never;
+      scopeAuthOptions?: Omit<ScopeAuthPluginOptions<Types>, 'authScopes'>;
       authScopes: ScopeAuthInitializer<Types>;
+    }
+
+    export interface SchemaBuilder<Types extends SchemaTypes> {
+      runAuthScopes: (
+        context: Types['Context'],
+        scopes: AuthScopeMap<Types>,
+        unauthorizedError?: (result: ForbiddenResult) => Error | string,
+      ) => MaybePromise<void>;
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -41,15 +61,15 @@ declare global {
     export interface UserSchemaTypes {
       AuthScopes: {};
       AuthContexts: {};
+      DefaultAuthStrategy: 'all' | 'any';
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      AuthScopes: undefined extends PartialTypes['AuthScopes']
-        ? {}
-        : PartialTypes['AuthScopes'] & {};
-      AuthContexts: undefined extends PartialTypes['AuthContexts']
-        ? {}
-        : PartialTypes['AuthContexts'] & {};
+      AuthScopes: PartialTypes['AuthScopes'] & {};
+      AuthContexts: PartialTypes['AuthContexts'] & {};
+      DefaultAuthStrategy: undefined extends PartialTypes['DefaultAuthStrategy']
+        ? 'any'
+        : PartialTypes['DefaultAuthStrategy'] & string;
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
@@ -60,11 +80,14 @@ declare global {
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       authScopes?: TypeAuthScopes<Types, Shape>;
       grantScopes?: TypeGrantScopes<Types, Shape>;
+      runScopesOnType?: boolean;
+      skipInterfaceScopes?: boolean;
     }
 
     export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
       authScopes?: TypeAuthScopes<Types, Shape>;
       grantScopes?: TypeGrantScopes<Types, Shape>;
+      runScopesOnType?: boolean;
     }
 
     export interface FieldOptions<
@@ -75,7 +98,7 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
-    > {
+    > extends UnauthorizedOptions<Types, ParentShape, Type, Nullable, Args> {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       skipTypeScopes?: boolean;
@@ -144,7 +167,7 @@ declare global {
               ResolveShape,
               ResolveReturnShape
             >,
-            'resolve'
+            InferredFieldOptionKeys
           > & {
             authScopes: Scopes;
             resolve: Resolver<
@@ -156,7 +179,63 @@ declare global {
             >;
           }
         >,
-      ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
+      ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
+    }
+
+    export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => QueryFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface MutationFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => MutationFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface SubscriptionFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => SubscriptionFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => ObjectFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => InterfaceFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface ScopeAuthFieldAuthScopes<
+      Types extends SchemaTypes,
+      Parent,
+      Args extends {} = {},
+    > {
+      Scopes: FieldAuthScopes<Types, Parent, Args>;
+    }
+    export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {
+      Context: ContextForAuth<Types, Scopes>;
     }
   }
 }

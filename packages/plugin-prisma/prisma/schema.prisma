@@ -6,25 +6,56 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  output          = "../tests/client"
+  previewFeatures = ["fullTextSearch"]
 }
 
-generator giraphql {
-  provider     = "ts-node ./src/generator.ts"
-  clientOutput = "@prisma/client"
-  output       = "../tests/generated.ts"
+generator pothos {
+  provider          = "node -r @swc-node/register ./src/generator.ts"
+  clientOutput      = "../tests/client"
+  pluginPath        = "../src"
+  output            = "../tests/generated.ts"
+  generateDatamodel = true
+  documentation     = true
 }
 
+/// Model for Posts!
 model Post {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @unique @default(now())
-  updatedAt DateTime  @updatedAt
+  id        Int         @id @default(autoincrement())
+  bigIntId  BigInt      @unique
+  createdAt DateTime    @unique @default(now())
+  updatedAt DateTime    @updatedAt
+  /// Title for the post
   title     String
+  /// Content for the post
   content   String?
-  published Boolean   @default(false)
-  author    User      @relation(fields: [authorId], references: [id])
+  /// Has this post been published?
+  published Boolean     @default(false)
+  author    User        @relation(fields: [authorId], references: [id])
   comments  Comment[]
   authorId  Int
+  media     PostMedia[]
+  views     Decimal     @default(0)
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  uploadedById Int?
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+  order   Int
+
+  @@unique([postId, mediaId])
 }
 
 model Comment {
@@ -45,15 +76,75 @@ model Profile {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
-  email    String    @unique
-  name     String?
-  posts    Post[]
-  comments Comment[]
-  profile  Profile?
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  posts     Post[]
+  comments  Comment[]
+  profile   Profile?
+  followers Follow[]  @relation("followers")
+  following Follow[]  @relation("following")
+  Media     Media[]
+}
+
+model Follow {
+  fromId Int
+  toId   Int
+  from   User @relation("following", fields: [fromId], references: [id])
+  to     User @relation("followers", fields: [toId], references: [id])
+
+  @@id([fromId, toId], name: "compositeID")
 }
 
 model Unrelated {
   id   Int     @id @default(autoincrement())
   name String?
+}
+
+model WithID {
+  id                  String                @id
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithUnique {
+  id                  String                @unique
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithCompositeID {
+  a String
+  b String
+
+  FindUniqueRelations FindUniqueRelations[]
+
+  @@id([a, b])
+}
+
+model WithCompositeUnique {
+  a String
+  c String? @unique
+  b String
+
+  FindUniqueRelations FindUniqueRelations[]
+
+  @@unique([a, c])
+  @@unique([a, b])
+}
+
+model FindUniqueRelations {
+  id String @id
+
+  withID_id String
+  withID    WithID @relation(fields: [withID_id], references: [id])
+
+  withUnique_id String
+  withUnique    WithUnique @relation(fields: [withUnique_id], references: [id])
+
+  withCompositeID_a String
+  withCompositeID_b String
+  withCompositeID   WithCompositeID @relation(fields: [withCompositeID_a, withCompositeID_b], references: [a, b])
+
+  withCompositeUnique_a String
+  withCompositeUnique_b String
+  withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b])
 }

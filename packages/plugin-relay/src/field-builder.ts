@@ -1,24 +1,25 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  assertArray,
-  FieldKind,
-  FieldNullability,
-  InputFieldMap,
-  InputShapeFromFields,
-  InterfaceRef,
+  type FieldKind,
+  type FieldNullability,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type InterfaceRef,
+  ObjectRef,
   RootFieldBuilder,
-  SchemaTypes,
-} from '@giraphql/core';
-import {
+  type SchemaTypes,
+  assertArray,
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type {
   ConnectionShape,
   GlobalIDFieldOptions,
   GlobalIDListFieldOptions,
   GlobalIDShape,
 } from './types';
 import { capitalize, resolveNodes } from './utils';
-import { internalEncodeGlobalID } from './utils/internal';
+import { internalDecodeGlobalID, internalEncodeGlobalID } from './utils/internal';
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind
@@ -32,40 +33,40 @@ fieldBuilderProto.globalIDList = function globalIDList<
   resolve,
   ...options
 }: GlobalIDListFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {
-  const wrappedResolve = async (
-    parent: unknown,
-    args: InputShapeFromFields<Args>,
-    context: object,
-    info: GraphQLResolveInfo,
-  ) => {
-    const result = await resolve(parent, args, context, info);
+  return this.field({
+    ...options,
+    type: ['ID'],
+    resolve: (async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) => {
+      const result = await resolve(parent, args, context, info);
 
-    if (!result) {
-      return result;
-    }
+      if (!result) {
+        return result;
+      }
 
-    assertArray(result);
+      assertArray(result);
 
-    if (Array.isArray(result)) {
-      return (await Promise.all(result)).map(
-        (item: GlobalIDShape<SchemaTypes> | null | undefined) =>
+      if (Array.isArray(result)) {
+        return (
+          (await Promise.all(result)) as (GlobalIDShape<SchemaTypes> | null | undefined)[]
+        ).map((item) =>
           item == null || typeof item === 'string'
             ? item
             : internalEncodeGlobalID(
                 this.builder,
                 this.builder.configStore.getTypeConfig(item.type).name,
                 String(item.id),
+                context,
               ),
-      );
-    }
+        );
+      }
 
-    return null;
-  };
-
-  return this.field({
-    ...options,
-    type: ['ID'],
-    resolve: wrappedResolve as never, // resolve is not expected because we don't know FieldKind
+      return null;
+    }) as never,
   });
 };
 
@@ -77,37 +78,36 @@ fieldBuilderProto.globalID = function globalID<
   resolve,
   ...options
 }: GlobalIDFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {
-  const wrappedResolve = async (
-    parent: unknown,
-    args: InputShapeFromFields<Args>,
-    context: object,
-    info: GraphQLResolveInfo,
-  ) => {
-    const result = await resolve(parent, args, context, info);
-
-    if (!result || typeof result === 'string') {
-      return result;
-    }
-
-    const item = result as unknown as GlobalIDShape<SchemaTypes>;
-
-    return internalEncodeGlobalID(
-      this.builder,
-      this.builder.configStore.getTypeConfig(item.type).name,
-      String(item.id),
-    );
-  };
-
   return this.field({
     ...options,
     type: 'ID',
-    resolve: wrappedResolve as never, // resolve is not expected because we don't know FieldKind
+    resolve: (async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) => {
+      const result = await resolve(parent, args, context, info);
+
+      if (!result || typeof result !== 'object') {
+        return result;
+      }
+
+      const item = result as unknown as GlobalIDShape<SchemaTypes>;
+
+      return internalEncodeGlobalID(
+        this.builder,
+        this.builder.configStore.getTypeConfig(item.type).name,
+        String(item.id),
+        context,
+      );
+    }) as never, // resolve is not expected because we don't know FieldKind
   });
 };
 
 fieldBuilderProto.node = function node({ id, ...options }) {
-  return this.field<{}, InterfaceRef<unknown>, unknown, Promise<unknown>, true>({
-    ...options,
+  return this.field<InterfaceRef<SchemaTypes, unknown>, unknown, Promise<unknown>, true, {}>({
+    ...(options as {}),
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
@@ -123,12 +123,11 @@ fieldBuilderProto.node = function node({ id, ...options }) {
 
       const globalID =
         typeof rawID === 'string'
-          ? rawID
-          : internalEncodeGlobalID(
-              this.builder,
-              this.builder.configStore.getTypeConfig(rawID.type).name,
-              String(rawID.id),
-            );
+          ? internalDecodeGlobalID(this.builder, rawID, context, info, true)
+          : rawID && {
+              id: rawID.id,
+              typename: this.builder.configStore.getTypeConfig(rawID.type).name,
+            };
 
       return (await resolveNodes(this.builder, context, info, [globalID]))[0];
     },
@@ -160,13 +159,12 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
       )[];
 
       const globalIds = rawIds.map((id) =>
-        !id || typeof id === 'string'
-          ? id
-          : internalEncodeGlobalID(
-              this.builder,
-              this.builder.configStore.getTypeConfig(id.type).name,
-              String(id.id),
-            ),
+        typeof id === 'string'
+          ? internalDecodeGlobalID(this.builder, id, context, info, true)
+          : id && {
+              id: id.id,
+              typename: this.builder.configStore.getTypeConfig(id.type).name,
+            },
       );
 
       return resolveNodes(this.builder, context, info, globalIds);
@@ -175,45 +173,55 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
 };
 
 fieldBuilderProto.connection = function connection(
-  { type, ...fieldOptions },
-  { name: connectionNameFromOptions, ...connectionOptions } = {} as never,
-  { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
+  { type, edgesNullable, nodeNullable, ...fieldOptions },
+  connectionOptionsOrRef = {} as never,
+  edgeOptionsOrRef = {} as never,
 ) {
-  const placeholderRef =
-    this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>('Unnamed connection');
+  const connectionRef =
+    connectionOptionsOrRef instanceof ObjectRef
+      ? connectionOptionsOrRef
+      : new ObjectRef<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>(
+          'Unnamed connection',
+        );
 
   const fieldRef = this.field({
+    ...(this.builder.options.relay?.defaultConnectionFieldOptions as {}),
     ...fieldOptions,
-    type: placeholderRef,
+    type: connectionRef,
     args: {
       ...fieldOptions.args,
       ...this.arg.connectionArgs(),
-    } as unknown as {},
-    resolve: fieldOptions.resolve as never,
-  });
+    },
+  } as never);
 
-  this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
-    const connectionName =
-      connectionNameFromOptions ??
-      `${this.typename}${capitalize(fieldConfig.name)}${
-        fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
-      }`;
-    const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
+  if (!(connectionOptionsOrRef instanceof ObjectRef)) {
+    fieldRef.onFirstUse((fieldConfig) => {
+      const connectionName =
+        connectionOptionsOrRef.name ??
+        `${fieldConfig.parentType}${capitalize(fieldConfig.name)}${
+          fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
+        }`;
 
-    this.builder.connectionObject(
-      {
-        type,
-        name: connectionName,
-        ...connectionOptions,
-      },
-      {
-        name: edgeName,
-        ...edgeOptions,
-      },
-    );
-
-    this.builder.configStore.associateRefWithName(placeholderRef, connectionName);
-  });
+      this.builder.configStore.associateParamWithRef(
+        connectionRef,
+        this.builder.connectionObject(
+          {
+            type,
+            edgesNullable,
+            nodeNullable,
+            ...connectionOptionsOrRef,
+            name: connectionName,
+          },
+          edgeOptionsOrRef instanceof ObjectRef
+            ? edgeOptionsOrRef
+            : {
+                name: `${connectionName}Edge`,
+                ...edgeOptionsOrRef,
+              },
+        ),
+      );
+    });
+  }
 
   return fieldRef as never;
 };

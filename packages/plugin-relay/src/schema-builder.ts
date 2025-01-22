@@ -1,42 +1,45 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import SchemaBuilder, {
+  BaseTypeRef,
+  completeValue,
   createContextCache,
-  FieldRef,
-  InterfaceParam,
-  InterfaceRef,
-  ObjectFieldsShape,
-  ObjectFieldThunk,
-  ObjectParam,
+  type FieldMap,
+  type FieldRef,
+  getTypeBrand,
+  InputObjectRef,
+  type InterfaceRef,
+  type ObjectFieldsShape,
   ObjectRef,
-  OutputRef,
-  SchemaTypes,
+  type OutputRef,
+  PothosValidationError,
+  type SchemaTypes,
   verifyRef,
-} from '@giraphql/core';
-import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
+} from '@pothos/core';
+import { defaultTypeResolver } from 'graphql';
+import { ImplementableNodeRef, NodeRef } from './node-ref';
+import type { ConnectionShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
+import { addNodeProperties } from './utils/add-node-props';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 const pageInfoRefMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  ObjectRef<PageInfoShape>
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  ObjectRef<SchemaTypes, PageInfoShape>
 >();
 
 const nodeInterfaceRefMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  InterfaceRef<ObjectParam<SchemaTypes>>
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  InterfaceRef<SchemaTypes, {}>
 >();
 
 export const connectionRefs = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  ObjectRef<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>[]
 >();
 
 export const globalConnectionFieldsMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  ((ref: ObjectRef<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]
 >();
 
 schemaBuilderProto.pageInfoRef = function pageInfoRef() {
@@ -49,33 +52,33 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
   pageInfoRefMap.set(this, ref);
 
   const {
-    cursorType = 'String',
+    pageInfoCursorType = this.options.relay?.cursorType ?? 'String',
     hasNextPageFieldOptions = {} as never,
     hasPreviousPageFieldOptions = {} as never,
     startCursorFieldOptions = {} as never,
     endCursorFieldOptions = {} as never,
-  } = this.options.relayOptions;
+  } = this.options.relay ?? {};
 
   ref.implement({
-    ...this.options.relayOptions.pageInfoTypeOptions,
+    ...this.options.relay?.pageInfoTypeOptions,
     fields: (t) => ({
       hasNextPage: t.exposeBoolean('hasNextPage', {
-        ...hasNextPageFieldOptions,
         nullable: false,
+        ...hasNextPageFieldOptions,
       }),
       hasPreviousPage: t.exposeBoolean('hasPreviousPage', {
-        ...hasPreviousPageFieldOptions,
         nullable: false,
+        ...hasPreviousPageFieldOptions,
       }),
       startCursor: t.expose('startCursor', {
-        ...startCursorFieldOptions,
-        type: cursorType,
         nullable: true,
+        ...(startCursorFieldOptions as {}),
+        type: pageInfoCursorType,
       }) as never,
       endCursor: t.expose('endCursor', {
-        ...endCursorFieldOptions,
-        type: cursorType,
         nullable: true,
+        ...(endCursorFieldOptions as {}),
+        type: pageInfoCursorType,
       }) as never,
     }),
   });
@@ -88,165 +91,221 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     return nodeInterfaceRefMap.get(this)!;
   }
 
-  const ref = this.interfaceRef<ObjectParam<SchemaTypes>>('Node');
+  const ref = this.interfaceRef<{}>('Node');
 
   nodeInterfaceRefMap.set(this, ref);
 
   ref.implement({
-    ...this.options.relayOptions.nodeTypeOptions,
+    resolveType: (value, context, info, graphQLType) => {
+      if (!value) {
+        return defaultTypeResolver(value, context, info, graphQLType);
+      }
+
+      const typeBrand = getTypeBrand(value);
+
+      if (typeBrand) {
+        const type = this.configStore.getTypeConfig(typeBrand as string);
+
+        return type.name;
+      }
+
+      try {
+        if (typeof value === 'object') {
+          const typename = (value as { __typename: string }).__typename;
+
+          if (typename) {
+            return typename;
+          }
+
+          const nodeRef = (value as { __type: OutputRef }).__type;
+
+          if (nodeRef) {
+            const config = this.configStore.getTypeConfig(nodeRef);
+
+            if (config) {
+              return config.name;
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      return defaultTypeResolver(value, context, info, graphQLType);
+    },
+    ...this.options.relay?.nodeTypeOptions,
     fields: (t) => ({
-      id: t.globalID({
-        resolve: (parent) => {
-          throw new Error('id field not implemented');
+      [this.options.relay?.idFieldName ?? 'id']: t.globalID({
+        ...this.options.relay?.idFieldOptions,
+        nullable: false,
+        resolve: (_parent) => {
+          throw new PothosValidationError('id field not implemented');
         },
       }),
     }),
   });
 
-  this.queryField(
-    'node',
-    (t) =>
-      t.field({
-        ...this.options.relayOptions.nodeQueryOptions,
-        type: ref as InterfaceRef<unknown>,
-        args: {
-          id: t.arg.id({ required: true }),
-        },
-        nullable: true,
-        resolve: async (root, args, context, info) =>
-          (await resolveNodes(this, context, info, [String(args.id)]))[0],
-      }) as FieldRef<unknown>,
-  );
+  const nodeQueryOptions = this.options.relay?.nodeQueryOptions;
 
-  this.queryField('nodes', (t) =>
-    t.field({
-      ...this.options.relayOptions.nodesQueryOptions,
-      type: [ref],
-      args: {
-        ids: t.arg.idList({ required: true }),
-      },
-      nullable: {
-        list: false,
-        items: true,
-      },
-      resolve: async (root, args, context, info) =>
-        (await resolveNodes(
-          this,
-          context,
-          info,
-          args.ids as string[],
-        )) as Promise<ObjectParam<SchemaTypes> | null>[],
-    }),
-  );
+  if (nodeQueryOptions !== false) {
+    const resolveNodeFn = nodeQueryOptions?.resolve;
+
+    this.queryField(
+      'node',
+      (t) =>
+        t.field({
+          nullable: true,
+          ...this.options.relay?.nodeQueryOptions,
+          type: ref as InterfaceRef<SchemaTypes, unknown>,
+          args: {
+            id: t.arg.globalID({
+              ...nodeQueryOptions?.args?.id,
+              required: true,
+              extensions: {
+                relayGlobalIDAlwaysParse: true,
+                ...nodeQueryOptions?.args?.id?.extensions,
+              },
+            }),
+          },
+          resolve: resolveNodeFn
+            ? (root, args, context, info) =>
+                resolveNodeFn(root, args, context, info, (_ids) =>
+                  completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0]),
+                ) as never
+            : (_root, args, context, info) =>
+                completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0]),
+        }) as FieldRef<SchemaTypes, unknown>,
+    );
+  }
+
+  const nodesQueryOptions = this.options.relay?.nodesQueryOptions;
+
+  if (nodesQueryOptions !== false) {
+    const resolveNodesFn = nodesQueryOptions?.resolve;
+
+    this.queryField('nodes', (t) =>
+      t.field({
+        nullable: {
+          list: false,
+          items: true,
+        },
+        ...this.options.relay?.nodesQueryOptions,
+        type: [ref],
+        args: {
+          ids: t.arg.globalIDList({
+            ...nodesQueryOptions?.args?.ids,
+            required: true,
+            extensions: {
+              relayGlobalIDAlwaysParse: true,
+              ...nodesQueryOptions?.args?.ids?.extensions,
+            },
+          }),
+        },
+        resolve: resolveNodesFn
+          ? (root, args, context, info) =>
+              resolveNodesFn(
+                root,
+                args as { ids: { id: string; typename: string }[] },
+                context,
+                info,
+                (_ids) =>
+                  resolveNodes(this, context, info, args.ids as { id: string; typename: string }[]),
+              ) as never
+          : (_root, args, context, info) =>
+              resolveNodes(
+                this,
+                context,
+                info,
+                args.ids as { id: string; typename: string }[],
+              ) as never,
+      }),
+    );
+  }
 
   return ref;
 };
 
-schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+schemaBuilderProto.nodeRef = function nodeRef(param, options) {
+  if (typeof param === 'string') {
+    return new ImplementableNodeRef(this, param, options) as never;
+  }
+
+  addNodeProperties(param.name, this, param, undefined, options);
+
+  return param as never;
+};
+
+schemaBuilderProto.node = function node(
+  param,
+  {
+    id,
+    name,
+    loadMany,
+    loadOne,
+    loadWithoutCache,
+    loadManyWithoutCache,
+    brandLoadedObjects,
+    ...options
+  },
+  fields,
+) {
   verifyRef(param);
-  const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
-    this.nodeInterfaceRef(),
-    ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
-  ];
 
-  let nodeName!: string;
+  const nodeName =
+    typeof param === 'string' ? param : param instanceof BaseTypeRef ? param.name : name!;
 
-  const ref = this.objectType<[], ObjectParam<SchemaTypes>>(
-    param,
+  const ref = new NodeRef(this, nodeName, param, {
+    id,
+    loadMany,
+    loadOne,
+    loadWithoutCache,
+    loadManyWithoutCache,
+    brandLoadedObjects,
+  });
+
+  if (typeof param !== 'string') {
+    this.configStore.associateParamWithRef(param, ref);
+  }
+
+  this.objectType(
+    ref,
     {
+      name: nodeName,
       ...options,
-      isTypeOf: (maybeNode, context, info) => {
-        if (options.isTypeOf) {
-          return options.isTypeOf(maybeNode, context, info);
-        }
-
-        if (!maybeNode) {
-          return false;
-        }
-
-        if (typeof param === 'function' && (maybeNode as unknown) instanceof (param as Function)) {
-          return true;
-        }
-
-        const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
-
-        try {
-          if (proto?.constructor) {
-            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
-
-            return config.name === nodeName;
-          }
-
-          if (typeof maybeNode === 'object') {
-            // eslint-disable-next-line no-underscore-dangle
-            const nodeRef = (maybeNode as { __type: OutputRef }).__type;
-
-            if (!nodeRef) {
-              return false;
-            }
-
-            const config = this.configStore.getTypeConfig(nodeRef);
-
-            return config.name === nodeName;
-          }
-        } catch {
-          // ignore
-        }
-
-        return false;
-      },
-      interfaces: interfacesWithNode as [],
     },
     fields,
   );
 
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    nodeName = nodeConfig.name;
-
-    this.objectField(ref, 'id', (t) =>
-      t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
-        ...options.id,
-        nullable: false,
-        args: {},
-        resolve: async (parent, args, context, info) => ({
-          type: nodeConfig.name,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          id: await options.id.resolve(parent, args, context, info),
-        }),
-      }),
-    );
-  });
-
-  return ref;
+  return ref as never;
 };
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
-  const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-    this.objectField(
-      ref,
-      name,
-      field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
-    );
-  };
-
-  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
-
-  if (!globalConnectionFieldsMap.has(this)) {
-    globalConnectionFieldsMap.set(this, []);
-  }
-
-  globalConnectionFieldsMap.get(this)!.push(onRef);
+  this.globalConnectionFields((t) => ({ [name]: field(t) }));
 };
 
 schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fields) {
-  const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-    this.objectFields(
-      ref,
-      fields as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
-    );
+  const onRef = (ref: ObjectRef<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>) => {
+    this.configStore.onPrepare(() => {
+      const config = this.configStore.getTypeConfig(ref);
+
+      this.objectFields(ref, (t) => {
+        const existingFields = this.configStore.getFields(config.name);
+        const refs: FieldMap = {};
+
+        for (const [name, field] of Object.entries(fields(t as never))) {
+          if (!existingFields.has(name)) {
+            refs[name] = field;
+          }
+        }
+
+        return refs;
+      });
+    });
   };
 
-  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
+  for (const ref of connectionRefs.get(this) ?? []) {
+    onRef(ref);
+  }
 
   if (!globalConnectionFieldsMap.has(this)) {
     globalConnectionFieldsMap.set(this, []);
@@ -259,56 +318,69 @@ const mutationIdCache = createContextCache(() => new Map<string, string>());
 
 schemaBuilderProto.relayMutationField = function relayMutationField(
   fieldName,
-  {
-    name: inputName = `${capitalize(fieldName)}Input`,
-    argName = 'input',
-    inputFields,
-    ...inputOptions
-  },
-  { resolve, ...fieldOptions },
+  inputOptionsOrRef,
+  { resolve, args, ...fieldOptions },
   {
     name: payloadName = `${capitalize(fieldName)}Payload`,
     outputFields,
     interfaces,
-    ...paylaodOptions
+    ...payloadOptions
   },
 ) {
   const {
-    relayOptions: {
+    relay: {
       clientMutationIdInputOptions = {} as never,
       clientMutationIdFieldOptions = {} as never,
       mutationInputArgOptions = {} as never,
-    },
+    } = {},
   } = this.options;
 
-  const includeClientMutationId = this.options.relayOptions.clientMutationId !== 'omit';
+  const includeClientMutationId =
+    this.options.relay?.clientMutationId && this.options.relay?.clientMutationId !== 'omit';
 
-  const inputRef = this.inputType(inputName, {
-    ...inputOptions,
-    fields: (t) => ({
-      ...inputFields(t),
-      ...(includeClientMutationId
-        ? {
-            clientMutationId: t.id({
-              ...clientMutationIdInputOptions,
-              required: this.options.relayOptions.clientMutationId !== 'optional',
-            }),
-          }
-        : {}),
-    }),
-  });
+  let inputRef: InputObjectRef<SchemaTypes, unknown> | null;
+  let argName = 'input';
+
+  if (!inputOptionsOrRef || inputOptionsOrRef instanceof InputObjectRef) {
+    inputRef = inputOptionsOrRef;
+  } else {
+    const {
+      name: inputName = `${capitalize(fieldName)}Input`,
+      argName: argNameFromOptions = 'input',
+      inputFields,
+      ...inputOptions
+    } = inputOptionsOrRef;
+    argName = argNameFromOptions;
+
+    inputRef = this.inputType(inputName, {
+      ...this.options.relay?.defaultMutationInputTypeOptions,
+      ...inputOptions,
+      fields: (t) => ({
+        ...inputFields(t),
+        ...(includeClientMutationId
+          ? {
+              clientMutationId: t.id({
+                ...clientMutationIdInputOptions,
+                required: this.options.relay?.clientMutationId !== 'optional',
+              }),
+            }
+          : {}),
+      }),
+    });
+  }
 
   const payloadRef = this.objectRef<unknown>(payloadName).implement({
-    ...paylaodOptions,
+    ...this.options.relay?.defaultPayloadTypeOptions,
+    ...payloadOptions,
     interfaces: interfaces as never,
     fields: (t) => ({
       ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
       ...(includeClientMutationId
         ? {
             clientMutationId: t.id({
+              nullable: this.options.relay?.clientMutationId === 'optional',
               ...clientMutationIdFieldOptions,
-              nullable: this.options.relayOptions.clientMutationId === 'optional',
-              resolve: (parent, args, context, info) =>
+              resolve: (_parent, _args, context, info) =>
                 mutationIdCache(context).get(String(info.path.prev!.key))!,
             }),
           }
@@ -321,21 +393,31 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       ...(fieldOptions as {}),
       type: payloadRef,
       args: {
-        [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
+        ...args,
+        ...(inputRef
+          ? {
+              [argName]: t.arg({
+                ...(mutationInputArgOptions as {}),
+                type: inputRef,
+                required: true,
+              }),
+            }
+          : {}),
       },
-      resolve: (root, args, context, info) => {
-        mutationIdCache(context).set(
-          String(info.path.key),
-          (args as unknown as Record<string, { clientMutationId: string }>)[argName]
-            .clientMutationId,
-        );
+      resolve: (root, fieldArgs, context, info) => {
+        if (inputRef) {
+          mutationIdCache(context).set(
+            String(info.path.key),
+            (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
+              .clientMutationId,
+          );
+        }
 
-        return resolve(root, args as never, context, info);
+        return resolve(root, fieldArgs as never, context, info);
       },
     }),
   );
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return {
     inputType: inputRef,
     payloadType: payloadRef,
@@ -343,32 +425,135 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 };
 
 schemaBuilderProto.connectionObject = function connectionObject(
-  { type, name: connectionName, ...connectionOptions },
-  { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
+  {
+    type,
+    name: connectionName,
+    edgesNullable: edgesNullableField,
+    nodeNullable,
+    edgesField,
+    ...connectionOptions
+  },
+  edgeOptionsOrRef,
 ) {
   verifyRef(type);
 
   const {
-    cursorType = 'String',
-    edgesFieldOptions = {} as never,
-    cursorFieldOptions = {} as never,
-    nodeFieldOptions = {} as never,
+    edgesFieldOptions: {
+      nullable: edgesNullable = {
+        items: this.defaultFieldNullability,
+        list: this.defaultFieldNullability,
+      },
+      ...edgesFieldOptions
+    } = {} as never,
     pageInfoFieldOptions = {} as never,
-  } = this.options.relayOptions;
+  } = this.options.relay ?? {};
 
   const connectionRef =
     this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
 
-  const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, '')}Edge`;
+  const edgeRef =
+    edgeOptionsOrRef instanceof ObjectRef
+      ? edgeOptionsOrRef
+      : this.edgeObject({
+          name: `${connectionName.replace(/Connection$/, '')}Edge`,
+          ...edgeOptionsOrRef,
+          nodeNullable,
+          type,
+        });
+
+  const connectionFields = connectionOptions.fields as unknown as
+    | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
+    | undefined;
+
+  const { nodesOnConnection } = this.options.relay ?? {};
+  const edgesNullableOption = edgesNullableField ?? edgesNullable;
+
+  const edgeListNullable = !!(
+    (typeof edgesNullableOption === 'object' ? edgesNullableOption.list : edgesNullableOption) ??
+    true
+  );
+  const edgeItemsNullable =
+    typeof edgesNullableOption === 'object' && 'items' in (edgesNullableOption as {})
+      ? edgesNullableOption.items
+      : (this.options.relay?.nodeFieldOptions?.nullable ?? true);
+
+  this.objectType(connectionRef, {
+    ...(this.options.relay?.defaultConnectionTypeOptions as {}),
+    ...(connectionOptions as {}),
+    fields: (t) => ({
+      pageInfo: t.field({
+        nullable: false,
+        ...pageInfoFieldOptions,
+        type: this.pageInfoRef(),
+        resolve: (parent) => parent.pageInfo,
+      }),
+      edges: t.field({
+        nullable: (edgesNullableField ?? edgesNullable) as { list: true; items: true },
+        ...edgesFieldOptions,
+        ...edgesField,
+        type: [edgeRef],
+        resolve: (parent) => parent.edges as [],
+      }),
+      ...(nodesOnConnection
+        ? {
+            nodes: t.field({
+              ...(typeof nodesOnConnection === 'object' ? nodesOnConnection : {}),
+              type: [type],
+              nullable: {
+                list: edgeListNullable,
+                items:
+                  edgeItemsNullable ||
+                  (nodeNullable ??
+                    this.options.relay?.nodeFieldOptions?.nullable ??
+                    this.defaultFieldNullability),
+              },
+              resolve: (con) =>
+                completeValue(
+                  con.edges,
+                  (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : []),
+                ) as never,
+            }),
+          }
+        : {}),
+      ...connectionFields?.(t as never),
+    }),
+  });
+
+  if (!connectionRefs.has(this)) {
+    connectionRefs.set(this, []);
+  }
+
+  connectionRefs.get(this)!.push(connectionRef);
+
+  for (const fieldFn of globalConnectionFieldsMap.get(this) ?? []) {
+    fieldFn(connectionRef);
+  }
+
+  return connectionRef as never;
+};
+
+schemaBuilderProto.edgeObject = function edgeObject({
+  type,
+  name: edgeName,
+  nodeNullable: nodeFieldNullable,
+  nodeField,
+  ...edgeOptions
+}) {
+  verifyRef(type);
+
+  const {
+    edgeCursorType = this.options.relay?.cursorType ?? 'String',
+    cursorFieldOptions = {} as never,
+    nodeFieldOptions: {
+      nullable: nodeNullable = this.defaultFieldNullability,
+      ...nodeFieldOptions
+    } = {} as never,
+  } = this.options.relay ?? {};
 
   const edgeRef = this.objectRef<{
     cursor: string;
     node: unknown;
   }>(edgeName);
-
-  const connectionFields = connectionOptions.fields as unknown as
-    | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
-    | undefined;
 
   const edgeFields = edgeOptions.fields as
     | ObjectFieldsShape<
@@ -380,53 +565,25 @@ schemaBuilderProto.connectionObject = function connectionObject(
       >
     | undefined;
 
-  this.objectType(connectionRef, {
-    ...connectionOptions,
-    fields: (t) => ({
-      pageInfo: t.field({
-        ...pageInfoFieldOptions,
-        type: this.pageInfoRef(),
-        resolve: (parent) => parent.pageInfo,
-      }),
-      edges: t.field({
-        ...edgesFieldOptions,
-        type: [edgeRef],
-        nullable: {
-          // TODO(breaking) according to the spec, this should be nullable
-          // Should be configuratble and default to true
-          list: false,
-          items: true,
-        },
-        resolve: (parent) => parent.edges,
-      }),
-      ...connectionFields?.(t as never),
-    }),
-  });
-
   this.objectType(edgeRef, {
+    ...(this.options.relay?.defaultEdgeTypeOptions as {}),
     ...edgeOptions,
     fields: (t) => ({
       node: t.field({
+        nullable: nodeFieldNullable ?? nodeNullable,
         ...nodeFieldOptions,
+        ...nodeField,
         type,
         resolve: (parent) => parent.node as never,
       }),
       cursor: t.expose('cursor', {
-        type: cursorType,
+        nullable: false,
+        type: edgeCursorType,
         ...cursorFieldOptions,
       }) as never,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       ...edgeFields?.(t),
     }),
   });
 
-  if (!connectionRefs.has(this)) {
-    connectionRefs.set(this, []);
-  }
-
-  connectionRefs.get(this)!.push(connectionRef);
-
-  globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
-
-  return connectionRef as never;
+  return edgeRef as never;
 };

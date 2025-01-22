@@ -1,29 +1,54 @@
 {
-  "name": "@giraphql/plugin-prisma",
-  "version": "0.13.3",
-  "description": "A GiraphQL plugin for more efficient integration with prisma",
+  "name": "@pothos/plugin-prisma",
+  "version": "4.4.0",
+  "description": "A Pothos plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
-    "import": "./esm/index.js",
-    "require": "./lib/index.js"
+    ".": {
+      "import": {
+        "default": "./esm/index.js"
+      },
+      "require": {
+        "types": "./dts/index.d.ts",
+        "default": "./lib/index.js"
+      }
+    },
+    "./generated": {
+      "import": {
+        "types": "./esm/generated.d.ts",
+        "default": "./esm/generated.js"
+      },
+      "require": {
+        "types": "./generated.d.ts",
+        "default": "./generated.js"
+      }
+    }
   },
   "scripts": {
-    "generate": "prisma generate",
-    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\""
+    "generate": "prisma generate && prisma generate --schema=./tests/prisma-types-from-client/schema.prisma",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest run"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-prisma"
   },
   "bin": {
-    "prisma-giraphql-types": "./bin/generator.js"
+    "prisma-pothos-types": "./bin/generator.js"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
-    "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",
@@ -36,27 +61,33 @@
     "mongo"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
-    "@prisma/generator-helper": "^3.5.0"
+    "@prisma/generator-helper": "^6.0.0"
   },
   "prisma": {
-    "seed": "pnpm ts-node prisma/seed.ts"
+    "seed": "node prisma/seed.mjs"
   },
   "peerDependencies": {
+    "@pothos/core": "*",
     "@prisma/client": "*",
-    "graphql": ">=15.1.0",
-    "typescript": ">4.5.2"
+    "graphql": ">=16.6.0",
+    "typescript": ">=4.7.2"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/plugin-errors": "^2.12.3",
-    "@giraphql/plugin-relay": "^2.18.4",
-    "@giraphql/test-utils": "^0.5.1",
-    "@prisma/client": "^3.5.0",
-    "graphql": "16.0.1",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-complexity": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@prisma/client": "^6.0.0",
+    "graphql": "^16.8.1",
+    "graphql-scalars": "^1.24.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^3.5.0"
+    "prisma": "^6.0.0",
+    "vitest": "^2.1.6"
   }
 }

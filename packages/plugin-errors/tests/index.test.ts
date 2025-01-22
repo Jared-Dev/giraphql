@@ -1,14 +1,16 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
-import builder from './example/builder';
-import schema from './example/schema';
+import { builder, builderWithCustomErrorTypeNames } from './example/builder';
+import { createSchema } from './example/schema';
 
-describe('mocked', () => {
+const schema = createSchema(builder);
+
+describe('errors plugin', () => {
   it('generates expected schema', () => {
     expect(printSchema(schema)).toMatchSnapshot();
 
     expect(() => {
-      builder.toSchema({});
+      builder.toSchema();
     }).not.toThrow();
   });
 
@@ -92,35 +94,35 @@ describe('mocked', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "extendedError": Object {
+      {
+        "data": {
+          "extendedError": {
             "__typename": "QueryExtendedErrorSuccess",
             "data": "ok",
           },
-          "extendedErrorError": Object {
+          "extendedErrorError": {
             "__typename": "BaseError",
             "message": "Error from extendedError",
           },
-          "extendedErrorExtended": Object {
+          "extendedErrorExtended": {
             "__typename": "ExtendedError",
             "message": "Error from extendedError",
           },
-          "extendedErrorExtended2": Object {
+          "extendedErrorExtended2": {
             "__typename": "Extended2Error",
             "message": "Error from extendedError",
           },
           "extendedErrorOther": null,
-          "simpleError": Object {
+          "simpleError": {
             "__typename": "QuerySimpleErrorSuccess",
             "data": "ok",
           },
-          "simpleErrorError": Object {
+          "simpleErrorError": {
             "__typename": "BaseError",
             "message": "Error from simpleError field",
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Unexpected error value: { message: "Error from extendedError" }],
         ],
       }
@@ -152,18 +154,27 @@ describe('mocked', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "directResult": Object {
-      "__typename": "DirectResult",
-      "id": "123",
-    },
-    "withError": Object {
-      "__typename": "BaseError",
-      "message": "Boom",
-    },
-  },
-}
-`);
+      {
+        "data": {
+          "directResult": {
+            "__typename": "DirectResult",
+            "id": "123",
+          },
+          "withError": {
+            "__typename": "BaseError",
+            "message": "Boom",
+          },
+        },
+      }
+    `);
+  });
+
+  it('supports generating custom names', () => {
+    const schemaWithCustomTypeNames = createSchema(builderWithCustomErrorTypeNames);
+    expect(printSchema(schemaWithCustomTypeNames)).toMatchSnapshot();
+
+    expect(() => {
+      builderWithCustomErrorTypeNames.toSchema();
+    }).not.toThrow();
   });
 });

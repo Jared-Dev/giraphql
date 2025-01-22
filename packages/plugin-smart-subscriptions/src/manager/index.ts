@@ -1,5 +1,4 @@
-/* eslint-disable no-await-in-loop */
-import { RegisterOptions } from '../types';
+import type { RegisterOptions } from '../types';
 
 type Timer = ReturnType<typeof setTimeout>;
 export default class SubscriptionManager implements AsyncIterator<object> {
@@ -82,7 +81,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     });
 
     if (maybePromise) {
-      maybePromise.catch((error) => void this.handleError(error));
+      maybePromise.catch((error) => this.handleError(error));
     }
   }
 
@@ -103,10 +102,10 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     };
   }
 
-  async throw(error: unknown) {
+  throw(error: unknown) {
     this.handleError(error);
 
-    return Promise.reject<IteratorResult<object>>(error);
+    return Promise.reject<IteratorResult<object>>(error as Error);
   }
 
   async next(): Promise<IteratorResult<object>> {
@@ -153,7 +152,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       this.rejectNext = (err) => {
         this.resolveNext = null;
         this.rejectNext = null;
-        reject(err);
+        reject(err as Error);
       };
 
       const pending = this.pendingEvents;
@@ -175,8 +174,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       this.rejectNext(err);
     }
 
-    // eslint-disable-next-line promise/no-promise-in-callback
-    this.stop().catch((error) => void this.handleError(error));
+    this.stop().catch((error) => this.handleError(error));
   }
 
   private async stop() {
@@ -231,7 +229,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     for (const options of optionsList) {
       const currentAllowed = !options.filter || options.filter(value);
 
-      allowed = allowed || currentAllowed;
+      allowed ||= currentAllowed;
 
       if (currentAllowed && options.onValue) {
         const promise = options.onValue(value);
@@ -259,7 +257,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     const { allowed, promises } = this.filterValue(name, value);
 
     if (promises) {
-      promises.catch((error) => void this.handleError(error));
+      promises.catch((error) => this.handleError(error));
     }
 
     if (!allowed) {

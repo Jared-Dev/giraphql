@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 
 // Define backing models/types
 interface Types {
@@ -12,7 +12,7 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: String };
+    Date: { Input: string; Output: string };
   };
   Context: { userID: number };
 }
@@ -22,7 +22,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  override species: 'Giraffe' = 'Giraffe';
+  override species = 'Giraffe' as const;
 
   name: string;
 
@@ -33,6 +33,10 @@ class Giraffe extends Animal {
 
     this.name = name;
     this.age = age;
+  }
+
+  get favoriteFood() {
+    return Promise.resolve('acacia trees');
   }
 }
 
@@ -53,11 +57,12 @@ builder.objectType(Giraffe, {
   name: 'Giraffe',
   interfaces: [Animal],
   isTypeOf(parent) {
-    return parent.species === 'Giraffe';
+    return parent instanceof Animal && parent.species === 'Giraffe';
   },
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.exposeInt('age', {}),
+    favoriteFood: t.exposeString('favoriteFood'),
   }),
 });
 
@@ -113,8 +118,7 @@ Example2.implement({
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) =>
-    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) => (Object.hasOwn(parent, 'firstName') ? 'User' : 'Article'),
 });
 
 // Creating an ObjectType and its resolvers
@@ -152,12 +156,12 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) =>
+      resolve: (_parent, args) =>
         Number.parseInt(String(args.example2.more.more.more.example.id), 10),
     }),
     // Using a union type
     related: t.field({
-      resolve: (parent) => ({
+      resolve: (_parent) => ({
         body: 'stuff',
         title: 'hi',
       }),
@@ -185,7 +189,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
+      resolve: (_parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -200,7 +204,7 @@ builder.objectType('User', {
         list: false,
         items: true,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     notSparseList: t.idList({
       args: {
@@ -215,7 +219,7 @@ builder.objectType('User', {
         list: true,
         items: false,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     defaultArgs: t.idList({
       args: {
@@ -224,7 +228,7 @@ builder.objectType('User', {
           defaultValue: ['abc'],
         }),
       },
-      resolve: (parent, args) => [123, ...args.ids],
+      resolve: (_parent, args) => [123, ...args.ids],
     }),
     fact: t.exposeString('funFact', { nullable: true }),
   }),
@@ -261,7 +265,7 @@ const Stuff = builder.enumType('stuff', {
 });
 
 builder.objectType('Sheep', {
-  interfaces: [Shaveable, 'Countable'],
+  interfaces: () => [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
   isTypeOf: () => true,
@@ -270,7 +274,7 @@ builder.objectType('Sheep', {
       args: {
         id: t.arg.id(),
       },
-      resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
+      resolve: (_p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     thing: t.field({
       type: Stuff,
@@ -340,6 +344,6 @@ builder.subscriptionType({
   }),
 });
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 
 export default schema;

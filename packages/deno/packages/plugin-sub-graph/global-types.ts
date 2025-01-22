@@ -1,9 +1,9 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { GiraphQLSubGraphPlugin } from './index.ts';
+import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromTypeParam, InputType, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import type { PothosSubGraphPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
             subGraphs?: Types["SubGraphs"][];
         }
@@ -22,8 +22,22 @@ declare global {
         export interface FieldOptions<Types extends SchemaTypes = SchemaTypes, ParentShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveShape = unknown, ResolveReturnShape = unknown> {
             subGraphs?: Types["SubGraphs"][];
         }
+        export interface ArgFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
+            InputType<Types>
+        ] = InputType<Types> | [
+            InputType<Types>
+        ], Req extends FieldRequiredness<Type> = FieldRequiredness<Type>> extends InputFieldOptions<Types, Type, Req> {
+            subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req> ? Types["SubGraphs"][] : never;
+        }
+        export interface InputObjectFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
+            InputType<Types>
+        ] = InputType<Types> | [
+            InputType<Types>
+        ], Req extends FieldRequiredness<Type> = FieldRequiredness<Type>> extends InputFieldOptions<Types, Type, Req> {
+            subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req> ? Types["SubGraphs"][] : never;
+        }
         export interface Plugins<Types extends SchemaTypes> {
-            subGraph: GiraphQLSubGraphPlugin<Types>;
+            subGraph: PothosSubGraphPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             subGraphs?: {
@@ -36,7 +50,7 @@ declare global {
             SubGraphs: string;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-            SubGraphs: PartialTypes["SubGraphs"] extends string ? PartialTypes["SubGraphs"] : string;
+            SubGraphs: PartialTypes["SubGraphs"] & string;
         }
     }
 }

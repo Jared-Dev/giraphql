@@ -1,18 +1,22 @@
 {
-  "name": "@giraphql/deno",
-  "version": "2.18.1",
-  "description": "Deno compatible versions of GiraphQL packages",
+  "name": "@pothos/deno",
+  "version": "4.1.0",
+  "description": "Deno compatible versions of Pothos packages",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/deno"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
-    "ts-node": "^10.4.0"
+    "@swc-node/register": "^1.10.9",
+    "@swc/core": "^1.9.3",
+    "typescript": "^5.7.2"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

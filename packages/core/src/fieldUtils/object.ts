@@ -1,11 +1,12 @@
-import { SchemaTypes } from '../types';
-import FieldBuilder from './builder';
+import type { SchemaTypes } from '../types';
+import { FieldBuilder } from './builder';
 
-export default class ObjectFieldBuilder<
-  Types extends SchemaTypes,
+export class ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> extends FieldBuilder<
+  Types,
   ParentShape,
-> extends FieldBuilder<Types, ParentShape, 'Object'> {
-  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super(name, builder, 'Object', 'Object');
+  'Object'
+> {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
+    super(builder, 'Object', 'Object');
   }
 }

@@ -113,6 +113,12 @@ describe('dataloader', () => {
             title
             content
           }
+          postNullable(id: 123) {
+            id
+          }
+          postsNullable(ids: [123]) {
+            id
+          }
           post(id: 1) {
             id
           }
@@ -142,6 +148,48 @@ describe('dataloader', () => {
           }
           classThingRef {
             id
+          }
+          oneToMany(id: 1) {
+            id
+          }
+          twoToMany: oneToMany(id: 2) {
+            id
+          }
+          threeToMany: oneToMany(id: 3) {
+            id
+          }
+          classThingNode: node(id: "Q2xhc3NMb2FkYWJsZVRoaW5nOjE=") {
+            __typename
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('query with global ids', async () => {
+      const query = gql`
+        query {
+          loadableParse {
+            id
+            idNumber
+          }
+          loadableParseNodes(
+            ids: [
+              "TG9hZGFibGVQYXJzZVRlc3Q6MQ=="
+              "TG9hZGFibGVQYXJzZVRlc3Q6Mg=="
+              "TG9hZGFibGVQYXJzZVRlc3Q6MTA="
+            ]
+          ) {
+            id
+            idNumber
           }
         }
       `;
@@ -200,7 +248,9 @@ describe('dataloader', () => {
 
       expect(result.data).toMatchSnapshot();
       expect(result.errors).toMatchInlineSnapshot(`
-        Array [
+        [
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -123],
@@ -208,8 +258,6 @@ describe('dataloader', () => {
           [GraphQLError: Invalid ID -1],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -123],
-          [GraphQLError: Invalid ID -123],
-          [GraphQLError: Invalid ID -456],
         ]
       `);
     });

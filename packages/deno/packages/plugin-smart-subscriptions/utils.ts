@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { SmartSubscriptionOptions } from './types.ts';
+import { createContextCache, PothosSchemaError } from '../core/index.ts';
+import type { SmartSubscriptionOptions } from './types.ts';
 export function rootName(path: GraphQLResolveInfo["path"]): string {
     if (path.prev) {
         return rootName(path.prev);
@@ -14,16 +15,13 @@ export function stringPath(path: GraphQLResolveInfo["path"]): string {
     return String(path.key);
 }
 export function subscribeOptionsFromIterator<T, Context extends object = object>(createIterator: (name: string, context: Context) => AsyncIterator<T>): Pick<SmartSubscriptionOptions<Context>, "subscribe" | "unsubscribe"> {
-    const iterators = new WeakMap<Context, Map<string, AsyncIterator<T>>>();
+    const iterators = createContextCache(() => new Map<string, AsyncIterator<T>>());
     return {
         subscribe: async (name, context, cb) => {
             const itr = createIterator(name, context);
-            if (!iterators.has(context)) {
-                iterators.set(context, new Map<string, AsyncIterator<T>>());
-            }
-            const map = iterators.get(context)!;
+            const map = iterators(context)!;
             if (map.has(name)) {
-                throw new Error(`Can't create multiple subscriptions for the same event name ${name}`);
+                throw new PothosSchemaError(`Can't create multiple subscriptions for the same event name ${name}`);
             }
             map.set(name, itr);
             try {
@@ -36,8 +34,8 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
             }
         },
         unsubscribe: async (name, context) => {
-            const map = iterators.get(context)!;
-            if (!map || !map.has(name)) {
+            const map = iterators(context)!;
+            if (!map?.has(name)) {
                 return;
             }
             const itr = map.get(name)!;

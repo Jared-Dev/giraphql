@@ -1,5 +1,266 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- ea9981f: Improve ast representation of direvtive arguments
+
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+## 3.10.3
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.10.2
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.10.1
+
+### Patch Changes
+
+- 671a9935: Add ast nodes for defaultalues for args and input fields
+
+## 3.10.0
+
+### Minor Changes
+
+- 487b810a: Add support for @interfaceObject and @composeDirective
+- 487b810a: Add schemaDirectives option to `toSchema` for defining SCHEMA directives
+
+## 3.9.2
+
+### Patch Changes
+
+- 0eb6cb94: Fix bug that ignored directives added directly via extensions in some locations
+
+## 3.9.1
+
+### Patch Changes
+
+- bf6a6d2b: make directives plugin more compatible with older versions of graphql.js
+
+## 3.9.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
+## 3.8.4
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.8.3
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.8.2
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.8.1
+
+### Patch Changes
+
+- d350f842: update dev deps
+
+## 3.8.0
+
+### Minor Changes
+
+- 4c086637: Add deprecated directive to mock ast nodes
+
+## 3.7.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.7.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.7.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.7.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.7.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.6.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.6.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.5.2
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
+## 3.5.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
+## 3.5.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.4.3
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+
+## 3.4.2
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
+## 3.4.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 3.4.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.3.1
+
+### Patch Changes
+
+- 971f1aad: Update dev dependencies
+
+## 3.3.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+## 3.2.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.1.3
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
+## 3.1.2
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.1.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.1.0
+
+### Minor Changes
+
+- 4094e70a: Add initial support for new federation plugin
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.11.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.10.2
 
 ### Patch Changes

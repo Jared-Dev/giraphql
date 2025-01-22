@@ -1,10 +1,10 @@
 import { DateResolver } from 'graphql-scalars';
 import builder from './builder';
 
-builder.addScalarType('Date', DateResolver, {});
+builder.addScalarType('Date', DateResolver);
 
 builder.scalarType('PositiveInt', {
-  serialize: (n) => n as number,
+  serialize: (n) => n,
   parseValue: (n) => {
     if (typeof n !== 'number') {
       throw new TypeError('Value must be a number');

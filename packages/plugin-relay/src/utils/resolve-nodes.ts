@@ -1,47 +1,52 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { GraphQLResolveInfo } from 'graphql';
 import {
+  type MaybePromise,
+  type ObjectParam,
+  type OutputType,
+  PothosValidationError,
+  type SchemaTypes,
+  brandWithType,
   createContextCache,
-  MaybePromise,
-  ObjectParam,
-  OutputType,
-  SchemaTypes,
-} from '@giraphql/core';
-import { NodeObjectOptions } from '../types';
-import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { NodeObjectOptions } from '../types';
 
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 
 export async function resolveNodes<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  globalIDs: (string | null | undefined)[],
+  globalIDs: ({ id: unknown; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  const idsByType: Record<string, Map<string, string>> = {};
-  const results: Record<string, unknown> = {};
+  const idsByType: Record<string, Set<unknown>> = {};
+  const results: Record<string, MaybePromise<unknown>> = {};
 
-  globalIDs.forEach((globalID, i) => {
+  for (const globalID of globalIDs) {
     if (globalID == null) {
-      return;
+      continue;
     }
 
-    if (requestCache.has(globalID)) {
-      results[globalID] = requestCache.get(globalID)!;
-      return;
+    const { id, typename } = globalID;
+    const cacheKey = `${typename}:${id}`;
+
+    if (requestCache.has(cacheKey)) {
+      results[cacheKey] = requestCache.get(cacheKey)!;
+      continue;
     }
 
-    const { id, typename } = internalDecodeGlobalID(builder, globalID);
-
-    idsByType[typename] = idsByType[typename] || new Map();
-    idsByType[typename].set(id, globalID);
-  });
+    idsByType[typename] = idsByType[typename] ?? new Set();
+    idsByType[typename].add(id);
+  }
 
   await Promise.all(
     Object.keys(idsByType).map(async (typename) => {
-      const ids = [...idsByType[typename].keys()];
-      const globalIds = [...idsByType[typename].values()];
+      const ids = [...idsByType[typename]];
+
+      const config = builder.configStore.getTypeConfig(typename, 'Object');
+      const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
+      const shouldBrandObjects =
+        options.brandLoadedObjects ?? builder.options.relay?.brandLoadedObjects ?? true;
 
       const resultsForType = await resolveUncachedNodesForType(
         builder,
@@ -52,40 +57,45 @@ export async function resolveNodes<Types extends SchemaTypes>(
       );
 
       resultsForType.forEach((val, i) => {
-        results[globalIds[i]] = val;
+        if (shouldBrandObjects) {
+          brandWithType(val, typename as OutputType<Types>);
+        }
+
+        results[`${typename}:${ids[i]}`] = val;
       });
     }),
   );
 
-  return globalIDs.map((globalID) => (globalID == null ? null : results[globalID] ?? null));
+  return globalIDs.map((globalID) =>
+    globalID == null ? null : (results[`${globalID.typename}:${globalID.id}`] ?? null),
+  );
 }
 
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  ids: string[],
+  ids: readonly unknown[],
   type: OutputType<Types> | string,
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
-  const options = config.giraphqlOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
+  const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
 
   if (options.loadMany) {
-    const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
+    const loadManyPromise = Promise.resolve(options.loadMany(ids as unknown[], context));
 
     return Promise.all(
       ids.map((id, i) => {
-        const globalID = internalEncodeGlobalID(builder, config.name, id);
         const entryPromise = loadManyPromise
-          .then((results: unknown[]) => results[i])
+          .then((results: readonly unknown[]) => results[i])
           .then((result: unknown) => {
-            requestCache.set(globalID, result);
+            requestCache.set(`${config.name}:${id}`, result);
 
             return result;
           });
 
-        requestCache.set(globalID, entryPromise);
+        requestCache.set(`${config.name}:${id}`, entryPromise);
 
         return entryPromise;
       }),
@@ -95,20 +105,23 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   if (options.loadOne) {
     return Promise.all(
       ids.map((id) => {
-        const globalID = internalEncodeGlobalID(builder, config.name, id);
         const entryPromise = Promise.resolve(options.loadOne!(id, context)).then(
           (result: unknown) => {
-            requestCache.set(globalID, result);
+            requestCache.set(`${config.name}:${id}`, result);
 
             return result;
           },
         );
 
-        requestCache.set(globalID, entryPromise);
+        requestCache.set(`${config.name}:${id}`, entryPromise);
 
         return entryPromise;
       }),
     );
+  }
+
+  if (options.loadManyWithoutCache) {
+    return options.loadManyWithoutCache(ids as unknown[], context) as unknown[];
   }
 
   if (options.loadWithoutCache) {
@@ -117,5 +130,5 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
     );
   }
 
-  throw new Error(`${config.name} does not support loading by id`);
+  throw new PothosValidationError(`${config.name} does not support loading by id`);
 }

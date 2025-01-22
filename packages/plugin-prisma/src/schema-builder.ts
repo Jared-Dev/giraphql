@@ -1,125 +1,245 @@
 import './global-types';
-import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   brandWithType,
-  FieldNullability,
-  FieldRef,
-  InterfaceRef,
-  OutputType,
-  SchemaTypes,
-  TypeParam,
-} from '@giraphql/core';
-import { PrismaObjectFieldBuilder } from './field-builder';
-import PrismaNodeRef from './node-ref';
-import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
-import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types';
-import { queryFromInfo } from './util';
+  completeValue,
+  type FieldRef,
+  type InterfaceRef,
+  type OutputType,
+  PothosError,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import { PrismaInterfaceRef } from './interface-ref';
+import { ModelLoader } from './model-loader';
+import { PrismaNodeRef } from './node-ref';
+import { PrismaObjectRef } from './object-ref';
+import { PrismaObjectFieldBuilder } from './prisma-field-builder';
+import type { PrismaModelTypes, PrismaNodeOptions } from './types';
+import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
+import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
+import { getModelDescription } from './util/description';
+import { getClient, getDMMF } from './util/get-client';
+import { queryFromInfo } from './util/map-query';
+import { getRelationMap } from './util/relation-map';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
-  const ref = getRefFromModel(type, this);
-  const name = options.name ?? type;
+schemaBuilderProto.prismaObject = function prismaObject(
+  type,
+  { fields, findUnique, select, include, description, ...options },
+) {
+  const ref = options.variant
+    ? new PrismaObjectRef(options.variant, type)
+    : (getRefFromModel(type, this) as PrismaObjectRef<SchemaTypes, PrismaModelTypes>);
+  const name = options.variant ?? options.name ?? type;
+  const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
+  const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
 
   ref.name = name;
 
-  setFindUniqueForRef(ref, this, findUnique);
-
   this.objectType(ref, {
-    ...(options as {} as GiraphQLSchemaTypes.ObjectFieldOptions<
-      SchemaTypes,
-      unknown,
-      TypeParam<SchemaTypes>,
-      FieldNullability<SchemaTypes>,
-      {},
-      unknown
-    >),
+    ...(options as {}),
+    description: getModelDescription(type, this, description),
     extensions: {
       ...options.extensions,
-      giraphqlPrismaInclude: options.include,
+      pothosPrismaInclude: include,
+      pothosPrismaModel: type,
+      pothosPrismaFieldMap: fieldMap,
+      pothosPrismaSelect: select && { ...idSelection, ...(select as {}) },
+      pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique as never, this),
     },
     name,
-    fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
+    fields: fields
+      ? () =>
+          fields(
+            new PrismaObjectFieldBuilder(
+              ref.name,
+              this,
+              type,
+              getRelationMap(getDMMF(this)).get(type)!,
+            ),
+          )
+      : undefined,
+  });
+
+  return ref as never;
+};
+
+schemaBuilderProto.prismaInterface = function prismaInterface(
+  type,
+  { fields, findUnique, select, include, description, ...options },
+) {
+  const ref = options.variant
+    ? new PrismaInterfaceRef(options.variant, type)
+    : (getRefFromModel(type, this, 'interface') as PrismaInterfaceRef<
+        SchemaTypes,
+        PrismaModelTypes
+      >);
+  const name = options.variant ?? options.name ?? type;
+  const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
+  const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
+
+  ref.name = name;
+
+  this.interfaceType(ref, {
+    ...(options as {}),
+    description: getModelDescription(type, this, description),
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInclude: include,
+      pothosPrismaModel: type,
+      pothosPrismaFieldMap: fieldMap,
+      pothosPrismaSelect: select && { ...idSelection, ...(select as {}) },
+      pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique as never, this),
+    },
+    name,
+    fields: fields
+      ? () =>
+          fields(
+            new PrismaObjectFieldBuilder(
+              name,
+              this,
+              type,
+              getRelationMap(getDMMF(this)).get(type)!,
+              'Interface',
+            ),
+          )
+      : undefined,
   });
 
   return ref as never;
 };
 
 schemaBuilderProto.prismaNode = function prismaNode(
-  this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
-    nodeInterfaceRef?: () => InterfaceRef<unknown>;
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
+    nodeInterfaceRef?: () => InterfaceRef<SchemaTypes, unknown>;
   },
   type: keyof SchemaTypes['PrismaTypes'],
   {
-    findUnique,
+    id: { field, resolve: rawResolve, ...idOptions },
+    findUnique: rawFindUnique,
     name,
+    variant,
+    nullable,
     ...options
-  }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, [], never, {}>,
+  }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}, undefined>,
 ) {
-  const interfaceRef = this.nodeInterfaceRef?.();
+  const fieldName = field as unknown as string;
+  const resolve = rawResolve ?? getDefaultIDSerializer(type, fieldName, this);
+  const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
+  const typeName = variant ?? name ?? type;
+  const nodeRef = new PrismaNodeRef(typeName, type);
+  const findUnique = rawFindUnique
+    ? (parent: unknown, context: {}) =>
+        rawFindUnique(resolve(parent as never, context) as string, context)
+    : ModelLoader.getFindUniqueForField(nodeRef, type, fieldName, this);
 
-  if (!interfaceRef) {
-    throw new TypeError('builder.prismaNode requires @giraphql/plugin-relay to be installed');
-  }
-
-  const typeName = name ?? type;
-  const delegate = getDelegateFromModel(this.options.prisma.client, type);
-  const nodeRef = new PrismaNodeRef(typeName);
   const extendedOptions = {
     ...options,
-    interfaces: [interfaceRef, ...(options.interfaces ?? [])],
-    extensions: {
-      ...options.extensions,
-      giraphqlPrismaInclude: options.include,
+    name,
+    variant,
+    findUnique,
+  };
+
+  const ref = this.prismaObject(type, extendedOptions as never);
+
+  (this as typeof this & { nodeRef: (ref: unknown, options: unknown) => unknown }).nodeRef(ref, {
+    id: {
+      ...idOptions,
+      resolve: (parent: never, _args: object, context: object) => resolve(parent, context),
     },
-    isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
-    findUnique: (parent: unknown, context: {}) =>
-      findUnique(options.id.resolve(parent as never, context) as string, context),
     loadWithoutCache: async (
       id: string,
       context: SchemaTypes['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const query = queryFromInfo(context, info, typeName);
-      const record = await delegate.findUnique({
-        ...query,
-        rejectOnNotFound: true,
-        where: findUnique(id, context),
-      } as never);
+      const query = queryFromInfo({ context, info, typeName });
+      const delegate = getDelegateFromModel(getClient(this, context), type);
+
+      const record = await (delegate.findUniqueOrThrow && !nullable
+        ? delegate.findUniqueOrThrow({
+            ...query,
+            where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
+          } as never)
+        : delegate.findUnique({
+            ...query,
+            ...(nullable ? {} : { rejectOnNotFound: true }),
+            where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
+          } as never));
 
       brandWithType(record, typeName as OutputType<SchemaTypes>);
 
       return record;
     },
-  };
-
-  const ref = this.prismaObject(type, extendedOptions as never);
-
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    this.objectField(ref, 'id', (t) =>
-      (
-        t as unknown as {
-          globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-        }
-      ).globalID({
-        ...options.id,
-        nullable: false,
-        args: {},
-        resolve: async (
-          parent: never,
-          args: object,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => ({
-          type: nodeConfig.name,
-          id: await options.id.resolve(parent, context),
-        }),
-      }),
-    );
   });
 
-  this.configStore.associateRefWithName(nodeRef, typeName);
+  this.configStore.associateParamWithRef(nodeRef, ref);
 
   return nodeRef;
 } as never;
+
+schemaBuilderProto.prismaObjectField = function prismaObjectField(type, fieldName, field) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () => ({
+      [fieldName]: field(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    }));
+  });
+};
+
+schemaBuilderProto.prismaInterfaceField = function prismaInterfaceField(type, fieldName, field) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () => ({
+      [fieldName]: field(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+          'Interface',
+        ),
+      ),
+    }));
+  });
+};
+
+schemaBuilderProto.prismaObjectFields = function prismaObjectFields(type, fields) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () =>
+      fields(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    );
+  });
+};
+
+schemaBuilderProto.prismaInterfaceFields = function prismaInterfaceFields(type, fields) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () =>
+      fields(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+          'Interface',
+        ),
+      ),
+    );
+  });
+};

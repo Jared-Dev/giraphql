@@ -1,47 +1,54 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   FieldMap,
   FieldNullability,
   InputFieldMap,
+  InterfaceFieldsShape,
   InterfaceParam,
-  InterfaceRef,
   Normalize,
-  ObjectRef,
+  ObjectFieldsShape,
   ParentShape,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
-import { GiraphQLSimpleObjectsPlugin } from '.';
+  UnionToIntersection,
+} from '@pothos/core';
+import type { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
+
+import type { PothosSimpleObjectsPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
+      simpleObjects: PothosSimpleObjectsPlugin<Types>;
     }
     export interface SchemaBuilder<Types extends SchemaTypes> {
       simpleObject: <
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
         Shape extends Normalize<
-          OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>
+          OutputShapeFromFields<Fields> &
+            UnionToIntersection<ParentShape<Types, Interfaces[number]>>
         >,
       >(
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
-      ) => ObjectRef<Shape>;
+        fields?: ObjectFieldsShape<Types, Shape>,
+      ) => ObjectRef<Types, Shape>;
 
       simpleInterface: <
+        Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
-        Shape extends OutputShapeFromFields<Fields>,
-        Interfaces extends InterfaceParam<SchemaTypes>[],
+        Shape extends Normalize<
+          OutputShapeFromFields<Fields> &
+            UnionToIntersection<ParentShape<Types, Interfaces[number]>>
+        >,
       >(
         name: string,
-        options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
-      ) => InterfaceRef<Shape>;
+        options: SimpleInterfaceTypeOptions<Types, Interfaces, Fields, Shape>,
+        fields?: InterfaceFieldsShape<Types, Shape>,
+      ) => InterfaceRef<Types, Shape>;
     }
 
-    export interface GiraphQLKindToGraphQLType {
+    export interface PothosKindToGraphQLType {
       SimpleObject: 'Object';
       SimpleInterface: 'Interface';
     }
@@ -55,13 +62,22 @@ declare global {
       ResolveShape,
       ResolveReturnShape,
     > {
-      SimpleObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+      SimpleObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
-      SimpleInterface: Omit<
-        InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+
+      SimpleInterface: InterfaceFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
     }
 
@@ -72,17 +88,19 @@ declare global {
       Shape,
     > = Omit<
       ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
-      'fields'
+      'fields' | 'interfaces'
     > & {
+      interfaces?: (() => Interfaces) | Interfaces;
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     };
 
     export interface SimpleInterfaceTypeOptions<
       Types extends SchemaTypes,
+      Interfaces extends InterfaceParam<Types>[],
       Fields extends FieldMap,
-      Shape extends OutputShapeFromFields<Fields>,
-      Interfaces extends InterfaceParam<SchemaTypes>[],
-    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'args' | 'fields'> {
+      Shape,
+    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields' | 'interfaces'> {
+      interfaces?: (() => Interfaces) | Interfaces;
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }
   }

@@ -1,4 +1,4 @@
-# Scope Auth Plugin for GiraphQL
+# Auth Plugin
 
 The scope auth plugin aims to be a general purpose authorization plugin that can handle a wide
 variety of authorization use cases, while incurring a minimal performance overhead.
@@ -8,19 +8,22 @@ variety of authorization use cases, while incurring a minimal performance overhe
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-scope-auth
+yarn add @pothos/plugin-scope-auth
 ```
 
 #### IMPORTANT
 
-When using `scope-auth` with other plugins, make sure that the `scope-auth` plugin is listed first
-to ensure that other plugins that wrap resolvers do not execute first.
+When using `scope-auth` with other plugins, the `scope-auth` plugin should generally be listed first
+to ensure that other plugins that wrap resolvers do not execute before the `scope-auth` logic.
+However, exceptions do exist where it is desirable for a plugin to run before `scope-auth`. For
+instance, putting the [relay plugin](https://pothos-graphql.dev/docs/plugins/relay) before the
+`scope-auth` plugin results in the `authScopes` function correctly receiving parsed `globalID`s.
 
 ### Setup
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import ScopeAuthPlugin from '@giraphql/plugin-scope-auth';
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
 type MyPerms = 'readStuff' | 'updateStuff' | 'readArticle';
 
@@ -34,16 +37,21 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [ScopeAuthPlugin],
-  // scope initializer, create the scopes and scope loaders for each request
-  authScopes: async (context) => ({
-    public: !!context.User,
-    // eagerly evaluated scope
-    employee: await context.User.isEmployee(),
-    // evaluated when used
-    deferredScope: () => context.User.isEmployee(),
-    // scope loader with argument
-    customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
-  }),
+  scopeAuth: {
+    // Recommended when using subscriptions
+    // when this is not set, auth checks are run when event is resolved rather than when the subscription is created
+    authorizeOnSubscribe: true,
+    // scope initializer, create the scopes and scope loaders for each request
+    authScopes: async (context) => ({
+      public: !!context.User,
+      // eagerly evaluated scope
+      employee: await context.User.isEmployee(),
+      // evaluated when used
+      deferredScope: () => context.User.isEmployee(),
+      // scope loader with argument
+      customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
+    }),
+  },
 });
 ```
 
@@ -51,15 +59,11 @@ In the above setup, We import the `scope-auth` plugin, and include it in the bui
 We also define 2 important things:
 
 1. The `AuthScopes` type in the builder `SchemaTypes`. This is a map of types that define the types
-
    used by each of your scopes. We'll see how this is used in more detail below.
 
 2. The `scope initializer` function, which is the implementation of each of the scopes defined in
-
    the type above. This function returns a map of either booleans \(indicating if the request has
-   the
-
-   scope\) or functions that load the scope \(with an optional parameter\).
+   the scope\) or functions that load the scope \(with an optional parameter\).
 
 The names of the scopes \(`public`, `employee`, `deferredScope`, and `customPerm`\) are all
 arbitrary, and are not part of the plugin. You can use whatever scope names you prefer, and can add
@@ -87,25 +91,19 @@ people. Here is a short list of a few terms used in this document, and how they 
 interpreted:
 
 - `scope`: A scope is unit of authorization that can be used to authorize a request to resolve a
-
   field.
 
 - `scope map`: A map of scope names and scope parameters. This defines the set of scopes that will
-
   be checked for a field or type to authorize the request the resolve a resource.
 
 - `scope loader`: A function for dynamically loading scope given a scope parameter. Scope loaders
-
   are ideal for integrating with a permission service, or creating scopes that can be customized
-
   based in the field or values that they are authorizing.
 
 - `scope parameter`: A parameter that will be passed to a scope loader. These are the values in the
-
   authScopes objects.
 
 - `scope initializer`: The function that creates the scopes or scope loaders for the current
-
   request.
 
 While this plugin uses `scopes` as the term for it's authorization mechanism, this plugin can easily
@@ -232,8 +230,60 @@ builder.objectType(Article, {
 ```
 
 This will allow non-logged in users to resolve the title, but not the content of an Article.
-`ignoreScopesFromType` can be used in conjunction with `authScopes` on a field to completely
-overwrite the default scopes.
+`skipTypeScopes` can be used in conjunction with `authScopes` on a field to completely overwrite the
+default scopes.
+
+### Running scopes on types rather than fields
+
+By default, all auth scopes are tested before a field resolves. This includes both scopes defined on
+a type and scopes defined on a fields. When scopes for a `type` fail, you will end up with an error
+for each field of that type. Type level scopes are only executed once, but the errors are emitted
+for each affected field.
+
+The behavior may not be desireable for all users. You can set `runScopesOnType` to true, either on
+object types, or in the `scopeAuth` options of the builder
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuth: {
+    // Affects all object types (Excluding Query, Mutation, and Subscription)
+    runScopesOnType: true,
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
+  },
+  plugins: [ScopeAuthPlugin],
+});
+
+builder.objectType(Article, {
+  runScopesOnType: true,
+  authScopes: {
+    readArticle: true,
+  },
+  fields: (t) => ({
+    title: t.exposeString('title', {
+      // this will not have any affect because type scopes are not evaluated at the field level
+      skipTypeScopes: true,
+    }),
+    content: t.exposeString('title', {}),
+  }),
+});
+```
+
+Enabling this has a couple of limitations:
+
+1. THIS DOES NOT CURRENTLY WORK WITH `graphql-jit`. This options uses the `isTypeOf` function, but
+   `graphql-jit` does not support async `isTypeOf`, and also does not correctly pass the context
+   object to the isTypeOf checks. Until this is resolved, this option will not work with
+   `graphql-jit`.
+
+2. Fields of types that set `runScopesOnType` to true will not be able to use `skipTypeScopes` or
+   `skipInterfaceScopes`.
 
 ### Generalized auth functions with field specific arguments
 
@@ -259,13 +309,144 @@ builder.queryType({
 });
 ```
 
-In the example above, the authScope map uses the coolPermission scope loader with a parameter of
-`readArticle`. The first time a field requests this scope, the coolPermission loader will be called
-with `readArticle` as its argument. This scope will be cached, so that if multiple fields request
-the same scope, the scope loader will still only be called once.
+In the example above, the authScope map uses the customPerm scope loader with a parameter of
+`readArticle`. The first time a field requests this scope, the customPerm loader will be called with
+`readArticle` as its argument. This scope will be cached, so that if multiple fields request the
+same scope, the scope loader will still only be called once.
 
 The types for the parameters you provide for each scope are based on the types provided to the
 builder in the `AuthScopes` type.
+
+### Customizing error messages
+
+Error messages (and error instances) can be customized either globally or on specific fields.
+
+#### Globally
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuth: {
+    treatErrorsAsUnauthorized: true,
+    unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
+  },
+  plugins: [ScopeAuthPlugin],
+});
+```
+
+The `unauthorizedError` callback will be called with the parent, context, and info object of the
+unauthorized field. It will also include a 4th argument `result` that has the default message for
+this type of failure, and a `failure` property with some details about what caused the field to be
+unauthorized. This callback can either return an `Error` instance (or an instance of a class that
+extends `Error`), or a `string`. If a string is returned, it will be converted to a
+`ForbiddenError`.
+
+The `treatErrorsAsUnauthorized` option changes how errors in authorization functions are handled. By
+default errors are not caught by the plugin, and will act as if thrown directly from the resolver.
+This means that thrown errors bypass the `unauthorizedError` callback, and will cause requests to
+fail even when another scope in an `$any` passes.
+
+Setting `treatErrorsAsUnauthorized` will cause errors to be caught and treated as if the scope was
+not authorized.
+
+#### Surfacing errors thrown in authorization checks
+
+When `treatErrorsAsUnauthorized` is set to true, errors are caught and attached to the `result`
+object in the `unauthorizedError` callback. This allows you to surface the error to the client.
+
+For example, if you want to re-throw errors thrown by authorization functions you could do this by
+writing a custom `unauthorizedError` callback like this:
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '@pothos/plugin-scope-auth';
+
+// Find the first error and re-throw it
+function throwFirstError(failure: AuthFailure) {
+  // Check if the failure has an error attached to it and re-throw it
+  if ('error' in failure && failure.error) {
+    throw failure.error;
+  }
+
+  // Loop over any/all scopes and see if one of their children has an error to throw
+  if (
+    failure.kind === AuthScopeFailureType.AnyAuthScopes ||
+    failure.kind === AuthScopeFailureType.AllAuthScopes
+  ) {
+    for (const child of failure.failures) {
+      throwFirstError(child);
+    }
+  }
+}
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuth: {
+    treatErrorsAsUnauthorized: true,
+    unauthorizedError: (parent, context, info, result) => {
+      // throw an error if it's found
+      throwFirstError(result.failure);
+      // throw a fallback error if no error was found
+      return new Error(`Not authorized`);
+    },
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+```
+
+#### On individual fields
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    example: t.string({
+      authScopes: { loggedIn: true },
+      unauthorizedError: (parent, args, context, info, result) =>
+        new Error("You must be logged in to query the 'example' field"),
+      resolve: () => 'example',
+    }),
+  }),
+});
+```
+
+### Returning a custom value when unauthorized
+
+In some cases you may want to return null, and empty array, throw a custom error, or return a custom
+result when a user is not authorized. To do this you can add a `unauthorizedResolver` option to your
+field.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    articles: t.field({
+      type: [Article],
+      authScopes: {
+        customPerm: 'readArticle',
+      },
+      resolve: () => Article.getSome(),
+      unauthorizedResolver: () => [],
+    }),
+  }),
+});
+```
+
+In the example above, if a user is not authorized they will simply receive an empty array in the
+response. The `unauthorizedResolver` option takes the same arguments as a resolver, but also
+receives a 5th argument that is an instance of `ForbiddenError`.
 
 ### Setting scopes that apply for a full request
 
@@ -291,6 +472,82 @@ const builder = new SchemaBuilder<{
 This will ensure that if a request access a field that requests a `humanPermission` scope, and the
 request is made by another service or bot, we don't have to run the `hasPermission` check at all for
 those requests, since we know it would return false anyways.
+
+### Change context types based on scopes
+
+Sometimes you need to change your context typings depending on the applied scopes. You can provide
+custom context for your defined scopes and use the `authField` method to access the custom context:
+
+```typescript
+type Context = {
+  user: User | null;
+};
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+  AuthContexts: {
+    loggedIn: Context & { user: User };
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+
+builder.queryField('currentId', (t) =>
+  t.authField({
+    type: 'ID',
+    authScopes: {
+      loggedIn: true,
+    },
+    resolve: (parent, args, context) => context.user.id,
+  }),
+);
+```
+
+Some plugins contribute field builder methods with additional functionality that may not work with
+`t.authField`. In order to work with those methods, there is also a `t.withAuth` method that can be
+used to return a field builder with authScopes predefined.
+
+```typescript
+type Context = {
+  user: User | null;
+};
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+  AuthContexts: {
+    loggedIn: Context & { user: User };
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+
+builder.queryField('viewer', (t) =>
+  t
+    .withAuth({
+      loggedIn: true,
+    })
+    .prismaField({
+      type: User,
+      resolve: (query, root, args, ctx) =>
+        prisma.findUniqueOrThrow({
+          ...query,
+          where: { id: ctx.user.id },
+        }),
+    }),
+);
+```
 
 ### Logical operations on auth scopes \(any/all\)
 
@@ -321,6 +578,29 @@ You can use the built in `$any` and `$all` scope loaders to combine requirements
 above example requires a request to have either the `employee` or `deferredScope` scopes, and the
 `public` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
+
+You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
+option in the builder (defaults to `any`):
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: {
+    user: User | null;
+  };
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+  DefaultAuthStrategy: 'all';
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuthOptions: {
+    defaultStrategy: 'all',
+  },
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+```
 
 ### Auth that depends on parent value
 
@@ -353,7 +633,7 @@ called each time the resolve for the field would be called. This means the same 
 could be called multiple time for the same resource if the field is requested multiple times using
 an alias.
 
-returning a boolean from an auth scope function is an easy way to allow or disallow a request from
+Returning a boolean from an auth scope function is an easy way to allow or disallow a request from
 resolving a field without needing to evaluate additional scopes.
 
 ### Setting type level scopes based on the parent value
@@ -386,8 +666,7 @@ by non employees unless they have been published.
 ### Setting scopes based on the return value of a field
 
 This is a use that is not currently supported. The current work around is to move those checks down
-to the returned type. The downside of this is that any resulting permission errors will appear on
-the fields of the returned type rather than the parent field.
+to the returned type. Combining this with `runScopesOnType` should work for most cases.
 
 ### Granting access to a resource based on how it is accessed
 
@@ -475,6 +754,40 @@ Interfaces can define auth scopes on their fields the same way objects do. Field
 run checks for each interface it implements separately, meaning that a request would need to satisfy
 the scope requirements for each interface separately before the field is resolved.
 
+Object types can set `skipInterfaceScopes` to `true` to skip interface checks when resolving fields
+for that Object type.
+
+### Cache keys
+
+Auth scopes by default are cached based on the identity of the scope parameter. This works great for
+statically defined scopes, and scopes that take primitive values as their parameters. If you define
+auth scopes that take complex objects, and create those objects in a scope function (based on
+arguments, or parent values) You won't get cache hits on those checks.
+
+To work around this, you can provide a `cacheKey` option to the builder for generating a cache key
+from your scope checks.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuth: {
+    cacheKey: (val) => JSON.stringify(val),
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
+  },
+  plugins: [ScopeAuthPlugin],
+});
+```
+
+Above we are using `JSON.stringify` to generate a key. This will work for most complex objects, but
+you may want to consider something like `faster-stable-stringify` that can handle circular
+references, and swill always produce the same output regardless of the order of properties.
+
 ## When checks are run, and how things are cached
 
 ### Scope Initializer
@@ -484,12 +797,12 @@ its result will be cached for the current request.
 
 ### authScopes functions on fields
 
-when using a function for `authScopes` on a field, the function will be run each time the field is
+When using a function for `authScopes` on a field, the function will be run each time the field is
 resolved, since it has access to all the arguments passed to the resolver
 
 ### authScopes functions on types
 
-when using a function for `authScopes` on a type, the function will be run the once for each
+When using a function for `authScopes` on a type, the function will be run the once for each
 instance of that type in the response. It will be run lazily when the first field for that object is
 resolved, and its result will be cached and reused by all fields for that instance of the type.
 
@@ -513,18 +826,13 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Types
 
 - `AuthScopes`: `extends {}`. Each property is the name of its scope, each value is the type for the
-
   scopes parameter.
 
 - `ScopeLoaderMap`: Object who's keys are scope names \(from `AuthScopes`\) and whos values are
-  either
-
-  booleans \(indicating whether or not the request has the scope\) or function that take a parameter
-
-  \(type from `AuthScope`\) and return `MaybePromise<boolean>`
+  either booleans \(indicating whether or not the request has the scope\) or function that take a
+  parameter \(type from `AuthScope`\) and return `MaybePromise<boolean>`
 
 - `ScopeMap`: A map of scope names to parameters. Based on `AuthScopes`, may also contain `$all`,
-
   `$any` or `$granted`.
 
 ### Builder
@@ -534,7 +842,6 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Object and Interface options
 
 - `authScopes`: `ScopeMap` or `function`, accepts `parent` and `context` returns
-
   `MaybePromise<ScopeMap>`
 
 - `grantScopes`: `function`, accepts `parent` and `context` returns `MaybePromise<string[]>`
@@ -542,11 +849,9 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Field Options
 
 - `authScopes`: `ScopeMap` or `function`, accepts same arguments as resolver, returns
-
   `MaybePromise<ScopeMap>`
 
 - `grantScopes`: `string[]` or `function`, accepts same arguments as resolver, returns
-
   `MaybePromise<string[]>`
 
 - `skipTypeScopes`: `boolean`

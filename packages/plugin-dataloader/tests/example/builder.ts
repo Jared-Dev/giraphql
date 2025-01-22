@@ -1,18 +1,18 @@
-import SchemaBuilder from '@giraphql/core';
-import ErrorsPlugin from '@giraphql/plugin-errors';
-import RelayPlugin from '@giraphql/plugin-relay';
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import RelayPlugin from '@pothos/plugin-relay';
 import DataloaderPlugin from '../../src';
-import { ContextType } from './types';
+import type { ContextType } from './types';
 
 export default new SchemaBuilder<{ Context: ContextType }>({
-  relayOptions: {
+  relay: {
     pageInfoTypeOptions: {},
     nodeTypeOptions: {},
     nodeQueryOptions: {},
     nodesQueryOptions: {},
   },
   plugins: [RelayPlugin, ErrorsPlugin, DataloaderPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });

@@ -1,0 +1,89 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`federation compatibility generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@inaccessible", "@key", "@override", "@provides", "@shareable", "@tag"])
+
+type Product
+  @key(fields: "sku package")
+  @key(fields: "sku variation { id }")
+{
+  id: ID!
+  sku: String
+  package: String
+  dimensions: ProductDimension
+  variation: ProductVariation
+  notes: [String!] @inaccessible @tag(name: "internal")
+  createdBy: User @provides(fields: "totalProductsCreated")
+}
+
+type ProductDimension
+  @shareable
+{
+  size: String
+  weight: Int
+  unit: String @inaccessible
+}
+
+type ProductVariation {
+  id: ID!
+}
+
+type Query {
+  product(id: ID!): Product
+}
+
+type User
+  @key(fields: "email")
+  @extends
+{
+  email: String! @external
+  totalProductsCreated: Int @external
+  name: String @override(from: "users")
+}"
+`;
+
+exports[`federation compatibility generates expected schema 2`] = `
+"type Product {
+  createdBy: User
+  dimensions: ProductDimension
+  id: ID!
+  notes: [String!]
+  package: String
+  sku: String
+  variation: ProductVariation
+}
+
+type ProductDimension {
+  size: String
+  unit: String
+  weight: Int
+}
+
+type ProductVariation {
+  id: ID!
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  product(id: ID!): Product
+}
+
+type User {
+  email: String!
+  name: String
+  totalProductsCreated: Int
+}
+
+scalar _Any
+
+union _Entity = Product | User
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;

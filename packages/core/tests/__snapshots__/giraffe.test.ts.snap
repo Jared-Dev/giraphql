@@ -1,21 +1,21 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`giraffe example generates expected schema 1`] = `
+exports[`giraffe example > generates expected schema 1`] = `
 "interface Animal {
-  diet: Diet!
+  diet: Diet
 }
 
 interface AnimalFromClass {
-  diet: Diet!
+  diet: Diet
 }
 
 interface AnimalFromRef {
-  diet: Diet!
+  diet: Diet
 }
 
-\\"\\"\\"
+"""
 A date string, such as 2007-12-03, compliant with the \`full-date\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
-\\"\\"\\"
+"""
 scalar Date
 
 enum Diet {
@@ -24,34 +24,38 @@ enum Diet {
   OMNIVORIOUS
 }
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
-type Giraffe implements Animal {
-  age: Int!
-
-  \\"\\"\\"
-  While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
-  \\"\\"\\"
-  diet: Diet!
-  height(unit: LengthUnit! = Meters): Float!
+input FindGiraffeInput {
   name: String!
-  oldName(old: Boolean @deprecated(reason: \\"because\\")): String! @deprecated(reason: \\"should use name instead\\")
-  species: GiraffeSpecies!
+}
+
+"""Long necks, cool patterns, taller than you."""
+type Giraffe implements Animal {
+  age: Int
+
+  """
+  While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
+  """
+  diet: Diet
+  height(unit: LengthUnit! = Meters): Float
+  name: String
+  oldName(old: Boolean @deprecated(reason: "because")): String @deprecated(reason: "should use name instead")
+  species: GiraffeSpecies
 }
 
 union GiraffeFact = GiraffeNumericFact | GiraffeStringFact
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+"""Long necks, cool patterns, taller than you."""
 type GiraffeFromClass implements AnimalFromClass {
-  age: Int!
-  diet: Diet!
-  name: String!
+  age: Int
+  diet: Diet
+  name: String
 }
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+"""Long necks, cool patterns, taller than you."""
 type GiraffeFromRef implements AnimalFromRef {
-  age: Int!
-  diet: Diet!
-  name: String!
+  age: Int
+  diet: Diet
+  name: String
 }
 
 input GiraffeInput {
@@ -61,8 +65,8 @@ input GiraffeInput {
 }
 
 type GiraffeNumericFact {
-  fact: String!
-  value: Float!
+  fact: String
+  value: Float
 }
 
 enum GiraffeSpecies {
@@ -70,12 +74,12 @@ enum GiraffeSpecies {
   Northern
   Reticulated
 
-  \\"\\"\\"Also known as two-horned giraffe\\"\\"\\"
+  """Also known as two-horned giraffe"""
   Southern
 }
 
 type GiraffeStringFact {
-  fact: String!
+  fact: String
 }
 
 enum LengthUnit {
@@ -84,22 +88,23 @@ enum LengthUnit {
 }
 
 type Mutation {
-  createGiraffe(input: GiraffeInput!): GiraffeFromClass!
-  createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]!
+  createGiraffe(input: GiraffeInput!): GiraffeFromClass
+  createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]
+  findGiraffe(where: FindGiraffeInput!): GiraffeFromClass
 }
 
 scalar PositiveInt
 
 type Query {
-  animal: Animal!
-  animalClass: AnimalFromClass!
-  animalRef: AnimalFromRef!
-  date: Date!
-  giraffe: Giraffe!
-  giraffeClass: GiraffeFromClass!
-  giraffeFacts: [GiraffeFact!]!
-  giraffeRef: GiraffeFromRef!
-  positive: PositiveInt!
+  animal: Animal
+  animalClass: AnimalFromClass
+  animalRef: AnimalFromRef
+  date: Date
+  giraffe: Giraffe
+  giraffeClass: GiraffeFromClass
+  giraffeFacts: [GiraffeFact!]
+  giraffeRef: GiraffeFromRef
+  positive: PositiveInt
 }
 
 input RecursiveGiraffeInput {
@@ -110,70 +115,70 @@ input RecursiveGiraffeInput {
 }"
 `;
 
-exports[`giraffe example mutations mutate some stuff 1`] = `
-Object {
-  "data": Object {
-    "createGiraffe": Object {
+exports[`giraffe example > mutations > mutate some stuff 1`] = `
+{
+  "data": {
+    "createGiraffe": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "createGiraffeWithFriends": Array [
-      Object {
+    "createGiraffeWithFriends": [
+      {
         "age": 5,
         "diet": "HERBIVOROUS",
         "name": "James",
       },
-      Object {
+      {
         "age": 5,
         "diet": "HERBIVOROUS",
-        "name": "James",
+        "name": "Gina",
       },
     ],
   },
 }
 `;
 
-exports[`giraffe example queries query some stuff 1`] = `
-Object {
-  "data": Object {
-    "animal": Object {
+exports[`giraffe example > queries > query some stuff 1`] = `
+{
+  "data": {
+    "animal": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "animalClass": Object {
+    "animalClass": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "animalRef": Object {
+    "animalRef": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
     "date": "2012-12-12",
-    "giraffe": Object {
+    "giraffe": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "height": 5.2,
       "heightInFeet": 17.061200000000003,
       "name": "James",
     },
-    "giraffeClass": Object {
+    "giraffeClass": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "giraffeFacts": Array [
-      Object {
+    "giraffeFacts": [
+      {
         "__typename": "GiraffeStringFact",
         "fact": "A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern",
       },
-      Object {
+      {
         "__typename": "GiraffeNumericFact",
         "fact": "Top speed (MPH)",
         "value": 35,
       },
     ],
-    "giraffeRef": Object {
+    "giraffeRef": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",

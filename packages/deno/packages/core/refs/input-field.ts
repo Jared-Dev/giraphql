@@ -1,25 +1,28 @@
 // @ts-nocheck
-import { inputFieldShapeKey } from '../types/index.ts';
-import { FieldRef } from '../index.ts';
-export default class InputFieldRef<T = unknown, Kind extends "Arg" | "InputObject" = "Arg" | "InputObject"> {
-    kind: "Arg" | "InputObject";
-    parentTypename: string;
+import { inputFieldShapeKey, PothosInputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
+export class InputFieldRef<Types extends SchemaTypes, T = unknown> {
+    kind = "InputObject" as const;
     fieldName?: string;
-    argFor?: FieldRef | InputFieldRef;
-    [inputFieldShapeKey]: T;
-    constructor(kind: Kind, parentTypename: string) {
-        this.kind = kind;
-        this.parentTypename = parentTypename;
+    $inferInput!: T;
+    [inputFieldShapeKey]!: T;
+    protected pendingActions: ((config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | void)[] = [];
+    private initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>;
+    private onUseCallbacks = new Set<(config: PothosInputFieldConfig<Types>) => void>();
+    constructor(initConfig: (name: string, typeConfig: PothosTypeConfig) => PothosInputFieldConfig<Types>) {
+        this.initConfig = initConfig;
     }
-    toString() {
-        if (this.kind !== "Arg") {
-            if (this.fieldName) {
-                return `${this.parentTypename}.${this.fieldName}`;
-            }
-            return this.parentTypename;
+    updateConfig(cb: (config: PothosInputFieldConfig<Types>) => PothosInputFieldConfig<Types> | void) {
+        this.pendingActions.push(cb);
+    }
+    getConfig(name: string, typeConfig: PothosTypeConfig): PothosInputFieldConfig<Types> {
+        const config = this.pendingActions.reduce((config, cb) => cb(config) ?? config, this.initConfig(name, typeConfig));
+        for (const cb of this.onUseCallbacks) {
+            this.onUseCallbacks.delete(cb);
+            cb(config);
         }
-        const fieldName = this.argFor?.fieldName ?? "[unnamed filed]";
-        const argName = this.fieldName ?? "[unnamed argument]";
-        return `${this.parentTypename}.${fieldName}(${argName})`;
+        return config;
+    }
+    onFirstUse(cb: (config: PothosInputFieldConfig<Types>) => void) {
+        this.onUseCallbacks.add(cb);
     }
 }

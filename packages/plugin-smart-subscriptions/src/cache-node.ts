@@ -1,6 +1,7 @@
-import { MaybePromise, SchemaTypes } from '@giraphql/core';
-import SubscriptionCache from './cache';
-import { FieldSubscriptionManager, TypeSubscriptionManager } from '.';
+import { type MaybePromise, PothosValidationError, type SchemaTypes } from '@pothos/core';
+import type SubscriptionCache from './cache';
+import FieldSubscriptionManager from './manager/field';
+import TypeSubscriptionManager from './manager/type';
 
 export default class CacheNode<Types extends SchemaTypes> {
   path: string;
@@ -32,7 +33,9 @@ export default class CacheNode<Types extends SchemaTypes> {
       this.fieldManager.reRegister();
     }
 
-    this.typeManagers.forEach((manager) => void manager.reRegister());
+    for (const manager of this.typeManagers.values()) {
+      manager.reRegister();
+    }
   }
 
   managerForField() {
@@ -62,7 +65,7 @@ export default class CacheNode<Types extends SchemaTypes> {
   replaceValue(value: unknown, key: number | string) {
     if (typeof key === 'number') {
       if (!Array.isArray(this.value)) {
-        throw new TypeError('Expected value of CacheNode for list path to be an array');
+        throw new PothosValidationError('Expected value of CacheNode for list path to be an array');
       }
 
       this.cache.invalidPaths.push(`${this.path}.${key}`);

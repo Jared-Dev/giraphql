@@ -1,19 +1,19 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
-import { OutputRef, outputShapeKey } from '../types/index.ts';
-import BaseTypeRef from './base.ts';
-import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
-export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef, GiraphQLSchemaTypes.InterfaceRef<T, P> {
+import { InterfaceParam, InterfaceTypeOptions, OutputRef, outputShapeKey, parentShapeKey, PothosInterfaceTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { TypeRefWithFields } from './base-with-fields.ts';
+export class InterfaceRef<Types extends SchemaTypes, T, P = T> extends TypeRefWithFields<Types, PothosInterfaceTypeConfig> implements OutputRef, PothosSchemaTypes.InterfaceRef<Types, T, P> {
     override kind = "Interface" as const;
-    [outputShapeKey]: T;
-    [parentShapeKey]: P;
-    constructor(name: string) {
-        super("Interface", name);
+    $inferType!: T;
+    [outputShapeKey]!: T;
+    [parentShapeKey]!: P;
+    constructor(name: string, config?: PothosInterfaceTypeConfig) {
+        super("Interface", name, config);
     }
 }
-export class ImplementableInterfaceRef<Types extends SchemaTypes, Shape, Parent = Shape> extends InterfaceRef<Shape, Parent> {
-    private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
-    constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
+export class ImplementableInterfaceRef<Types extends SchemaTypes, Shape, Parent = Shape> extends InterfaceRef<Types, Shape, Parent> {
+    builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
         super(name);
         this.builder = builder;
     }

@@ -1,10 +1,12 @@
-import { inputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import { type SchemaTypes, inputShapeKey } from '../types';
+import { BaseTypeRef } from './base';
 
-export default class InputTypeRef<T> extends BaseTypeRef {
+export class InputTypeRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types> {
   override kind;
 
-  [inputShapeKey]: T;
+  $inferInput!: T;
+
+  [inputShapeKey]!: T;
 
   constructor(kind: 'Enum' | 'InputObject' | 'Scalar', name: string) {
     super(kind, name);

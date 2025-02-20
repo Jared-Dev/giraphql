@@ -1,4 +1,4 @@
-# Smart Subscriptions Plugin for GiraphQL
+# Smart Subscriptions Plugin for Pothos
 
 This plugin provides a way of turning queries into GraphQL subscriptions. Each field, Object, and
 Interface in a schema can define subscriptions to be registered when that field or type is used in a
@@ -7,15 +7,12 @@ smart subscription.
 The basic flow of a smart subscription is:
 
 1. Run the query the smart subscription is based on and push the initial result of that query to the
-
    subscription
 
 2. As the query is resolved, register any subscriptions defined on fields or types that where used
-
    in the query
 
 3. When any of the subscriptions are triggered, re-execute the query and push the updated data to
-
    the subscription.
 
 There are additional options which will allow only the sub-tree of a field/type that triggered a
@@ -28,15 +25,15 @@ schema are accessible via the subscribe query, since any type or field can regis
 
 ### Install
 
-```bash
-yarn add @giraphql/plugin-smart-subscriptions
+```package-install
+npm install --save @pothos/plugin-smart-subscriptions
 ```
 
 ### Setup
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import SmartSubscriptionsPlugin from '@giraphql/plugin-smart-subscriptions';
+import SchemaBuilder from '@pothos/core';
+import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
 const builder = new SchemaBuilder({
   plugins: [SmartSubscriptionsPlugin],
@@ -58,7 +55,7 @@ const builder = new SchemaBuilder({
 const builder = new SchemaBuilder({
   smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {
-      return pubsub.asyncIterator(name);
+      return pubsub.asyncIterableIterator(name);
     }),
   },
 });
@@ -73,7 +70,7 @@ builder.queryFields((t) => ({
     smartSubscription: true,
     subscribe: (subscriptions, root, args, ctx, info) => {
       subscriptions.register('poll-added')
-      subscriptions.register('poll-delted')
+      subscriptions.register('poll-deleted')
     },
     resolve: (root, args, ctx, info) => {
       return ctx.getThings();
@@ -89,7 +86,7 @@ subscription.
 This would be queried as:
 
 ```graphql
-subsciption {
+subscription {
   polls {
     question
     answers {
@@ -151,7 +148,6 @@ builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),
     answers: t.field({
-      nullable: true,
       type: ['Answer'],
       subscribe: (subscriptions, poll) => subscriptions.register(`poll-answers/${poll.id}`),
       resolve: (parent, args, context, info) => {
@@ -169,7 +165,6 @@ builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),
     answers: t.field({
-      nullable: true,
       type: ['Answer'],
       canRefetch: true,
       subscribe: (subscriptions, poll) =>

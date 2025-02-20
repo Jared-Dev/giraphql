@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`relay example schema generates expected schema 1`] = `
+exports[`relay example schema > generates expected schema 1`] = `
 "type Answer {
   count: Int!
   id: ID!
@@ -12,13 +12,17 @@ type BatchNumber implements Node {
   number: Int!
 }
 
-\\"\\"\\"input type\\"\\"\\"
+type CursorObject {
+  id: ID!
+}
+
+"""input type"""
 input CustomInputName {
   clientMutationId: ID!
   id: ID!
 }
 
-\\"\\"\\"output type\\"\\"\\"
+"""output type"""
 type CustomOutputName {
   clientMutationId: ID!
   itWorked: Boolean!
@@ -38,7 +42,20 @@ input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
-  idList: [ID!]!
+  idList: [ID]!
+  otherList: [OtherInput!] = [{someField: "abc"}]
+}
+
+type IDResult {
+  arg: String!
+  id: String!
+  idType: String!
+  typename: String!
+}
+
+type IDWithColon implements Node {
+  id: ID!
+  idString: String!
 }
 
 type Mutation {
@@ -47,13 +64,19 @@ type Mutation {
   exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
   exampleMutationReUse(input: ExampleMutationInput!): ExampleMutationPayload!
 
-  \\"\\"\\"mutation field\\"\\"\\"
+  """mutation field"""
   exampleWithDescriptions(customInput: CustomInputName!): CustomOutputName!
+  noInput(status: Int): NoInputPayload!
 }
 
 input NoGlobalIDInput {
   circular: NoGlobalIDInput
   id: ID
+}
+
+type NoInputPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
 }
 
 interface Node {
@@ -63,6 +86,19 @@ interface Node {
 type Number implements Node {
   id: ID!
   number: Int!
+}
+
+type NumberRef implements Node {
+  id: ID!
+}
+
+type NumberThingNodeRef implements Node {
+  id: ID!
+  number: Int!
+}
+
+input OtherInput {
+  someField: String
 }
 
 type PageInfo {
@@ -76,6 +112,7 @@ type Poll implements Node {
   answers: [Answer!]!
   answersConnection(after: ID, before: ID, first: Int, last: Int): PollAnswersConnection!
   answersUsingOffset(after: ID, before: ID, first: Int, last: Int): PollAnswersUsingOffsetConnection!
+  answersWithPromises(after: ID, before: ID, first: Int, last: Int): PollAnswersWithPromisesConnection!
   answersWithoutHelpers(after: ID, before: ID, first: Int, last: Int): PollAnswersCon!
   id: ID!
   question: String!
@@ -112,13 +149,32 @@ type PollAnswersUsingOffsetConnectionEdge {
   node: Answer!
 }
 
+type PollAnswersWithPromisesConnection {
+  edges: [PollAnswersWithPromisesConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersWithPromisesConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
 type Query {
+  associatingReturnType(after: ID, before: ID, first: Int, last: Int): QueryAssociatingReturnTypeConnection!
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  cursorConnection(after: ID, before: ID, first: Int, last: Int): QueryCursorConnection!
+  echoIDs(genericNumberThingID: ID!, globalID: ID!, numberThingID: ID!): [IDResult!]!
   extraNode: Node
-  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
+  idWithColon(id: ID!): IDWithColon!
+  idsWithColon(ids: [ID!]!): [IDWithColon!]!
+  inputGlobalID(id: ID!, idList: [ID]!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  numberNodeRef: NumberThingNodeRef!
+  numberRef: NumberRef!
+  numberThingByID(id: ID!): Number
+  numberThingsByIDs(ids: [ID!]!): [Number!]
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
   oddNumbers(after: ID, before: ID, first: Int, last: Int): QueryOddNumbersConnection!
   poll(id: Int!): Poll
@@ -126,18 +182,43 @@ type Query {
   polls: [Poll!]!
   pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
   sharedConnection(after: ID, before: ID, first: Int, last: Int): SharedConnection
+  sharedConnectionAndEdge(after: ID, before: ID, complexity: Int, first: Int, last: Int): SharedConnectionAndEdge!
+  sharedEdgeConnection(after: ID, before: ID, first: Int, last: Int): QuerySharedEdgeConnection!
+}
+
+type QueryAssociatingReturnTypeConnection {
+  connectionField: Int
+  edges: [QueryAssociatingReturnTypeConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryAssociatingReturnTypeConnectionEdge {
+  cursor: String!
+  edgeField: Int
+  node: BatchNumber!
 }
 
 type QueryBatchNumbersConnection {
   connectionField: Int
   edges: [QueryBatchNumbersConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type QueryBatchNumbersConnectionEdge {
   cursor: String!
   edgeField: Int
   node: BatchNumber!
+}
+
+type QueryCursorConnection {
+  edges: [QueryCursorConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryCursorConnectionEdge {
+  cursor: String!
+  node: CursorObject!
 }
 
 type QueryNumbersConnection {
@@ -161,6 +242,7 @@ type QueryOddNumbersConnectionEdge {
 }
 
 type QueryPollsConnection {
+  """edgesField test description"""
   edges: [QueryPollsConnectionEdge]!
   extraConnectionField: String!
   pageInfo: PageInfo!
@@ -169,12 +251,29 @@ type QueryPollsConnection {
 type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
+
+  """nodeField test description"""
   node: Poll!
 }
 
-type SharedConnection {
+type QuerySharedEdgeConnection {
   edges: [SharedEdge]!
   pageInfo: PageInfo!
+}
+
+type SharedConnection {
+  edges: [SharedConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type SharedConnectionAndEdge {
+  edges: [SharedEdge]!
+  pageInfo: PageInfo!
+}
+
+type SharedConnectionEdge {
+  cursor: String!
+  node: Number!
 }
 
 type SharedEdge {
@@ -183,26 +282,69 @@ type SharedEdge {
 }"
 `;
 
-exports[`relay example schema generates expected schema with globalConnectionFields 1`] = `
-"type Answer {
-  count: Int!
+exports[`relay example schema > generates expected schema with additional interfaces 1`] = `
+"type Customer implements Node & User {
+  age: Int
+  displayName: String
   id: ID!
-  value: String!
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Query {
+  """node query"""
+  node(id: ID!): Node
+
+  """nodes query"""
+  nodes(ids: [ID!]!): [Node]!
+  nullConnection(after: String, before: String, first: Int, last: Int): QueryNullConnection
+}
+
+type QueryNullConnection {
+  edges: [QueryNullConnectionEdge]
+  pageInfo: PageInfo!
+}
+
+type QueryNullConnectionEdge {
+  cursor: String!
+  node: Boolean!
+}
+
+interface User {
+  displayName: String
+  id: ID
+}"
+`;
+
+exports[`relay example schema > generates expected schema with globalConnectionFields 1`] = `
+"type Answer {
+  count: Int
+  id: ID
+  value: String
 }
 
 type BatchNumber implements Node {
-  id: ID!
-  number: Int!
+  nodeId: ID!
+  number: Int
 }
 
-\\"\\"\\"input type\\"\\"\\"
+"""input type"""
 input CustomInputName {
   id: ID!
 }
 
-\\"\\"\\"output type\\"\\"\\"
+"""output type"""
 type CustomOutputName {
-  itWorked: Boolean!
+  itWorked: Boolean
 }
 
 input ExampleMutationInput {
@@ -210,29 +352,29 @@ input ExampleMutationInput {
 }
 
 type ExampleMutationPayload {
-  itWorked: Boolean!
+  itWorked: Boolean
 }
 
 input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
-  idList: [ID!]!
+  idList: [ID]!
 }
 
 type Mutation {
-  answerPoll(answer: Int!, id: ID!): Poll!
-  createPoll(answers: [String!]!, question: String!): Poll!
+  answerPoll(answer: Int!, id: ID!): Poll
+  createPoll(answers: [String!]!, question: String!): Poll
   exampleMutation(
-    \\"\\"\\"mutation input arg\\"\\"\\"
+    """mutation input arg"""
     input: ExampleMutationInput!
-  ): ExampleMutationPayload!
+  ): ExampleMutationPayload
 
-  \\"\\"\\"mutation field\\"\\"\\"
+  """mutation field"""
   exampleWithDescriptions(
-    \\"\\"\\"mutation input arg\\"\\"\\"
+    """mutation input arg"""
     customInput: CustomInputName!
-  ): CustomOutputName!
+  ): CustomOutputName
 }
 
 input NoGlobalIDInput {
@@ -240,17 +382,17 @@ input NoGlobalIDInput {
   id: ID
 }
 
-\\"\\"\\"node type\\"\\"\\"
+"""node type"""
 interface Node {
-  id: ID!
+  nodeId: ID!
 }
 
 type Number implements Node {
-  id: ID!
-  number: Int!
+  nodeId: ID!
+  number: Int
 }
 
-\\"\\"\\"page info type\\"\\"\\"
+"""page info type"""
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -259,17 +401,18 @@ type PageInfo {
 }
 
 type Poll implements Node {
-  answers: [Answer!]!
-  answersConnection(after: String, before: String, first: Int, last: Int): PollAnswersConnection!
-  answersUsingOffset(after: String, before: String, first: Int, last: Int): PollAnswersUsingOffsetConnection!
-  answersWithoutHelpers(after: String, before: String, first: Int, last: Int): PollAnswersCon!
-  id: ID!
-  question: String!
-  updatedAt: String!
+  answers: [Answer!]
+  answersConnection(after: String, before: String, first: Int, last: Int): PollAnswersConnection
+  answersUsingOffset(after: String, before: String, first: Int, last: Int): PollAnswersUsingOffsetConnection
+  answersWithoutHelpers(after: String, before: String, first: Int, last: Int): PollAnswersCon
+  nodeId: ID!
+  question: String
+  updatedAt: String
 }
 
 type PollAnswersCon {
-  edges: [PollAnswersConEdge]!
+  edges: [PollAnswersConEdge!]!
+  nodes: [Answer]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -277,11 +420,12 @@ type PollAnswersCon {
 
 type PollAnswersConEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type PollAnswersConnection {
-  edges: [PollAnswersConnectionEdge]!
+  edges: [PollAnswersConnectionEdge!]!
+  nodes: [Answer]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -289,11 +433,12 @@ type PollAnswersConnection {
 
 type PollAnswersConnectionEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type PollAnswersUsingOffsetConnection {
-  edges: [PollAnswersUsingOffsetConnectionEdge]!
+  edges: [PollAnswersUsingOffsetConnectionEdge!]!
+  nodes: [Answer]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -301,30 +446,27 @@ type PollAnswersUsingOffsetConnection {
 
 type PollAnswersUsingOffsetConnectionEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type Query {
-  batchNumbers(after: String, before: String, first: Int, last: Int): QueryBatchNumbersConnection!
+  batchNumbers(after: String, before: String, first: Int, last: Int): QueryBatchNumbersConnection
   extraNode: Node
-  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
+  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String
   moreNodes: [Node]!
-
-  \\"\\"\\"node query\\"\\"\\"
-  node(id: ID!): Node
-
-  \\"\\"\\"nodes query\\"\\"\\"
-  nodes(ids: [ID!]!): [Node]!
-  numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection!
+  nullableNumbers(after: String, before: String, first: Int, last: Int): QueryNullableNumbersConnection
+  numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection
+  oddNumbers(after: String, before: String, first: Int, last: Int): QueryOddNumbersConnection
   poll(id: Int!): Poll
-  pollIds: [ID!]!
-  polls: [Poll!]!
-  pollsConnection(after: String, before: String, first: Int, last: Int): QueryPollsConnection!
+  pollIds: [ID!]
+  polls: [Poll!]
+  pollsConnection(after: String, before: String, first: Int, last: Int): QueryPollsConnection
   sharedConnection(after: String, before: String, first: Int, last: Int): SharedConnection
 }
 
 type QueryBatchNumbersConnection {
-  edges: [QueryBatchNumbersConnectionEdge]!
+  edges: [QueryBatchNumbersConnectionEdge!]!
+  nodes: [BatchNumber]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -332,11 +474,27 @@ type QueryBatchNumbersConnection {
 
 type QueryBatchNumbersConnectionEdge {
   cursor: String!
-  node: BatchNumber!
+  node: BatchNumber
+}
+
+type QueryNullableNumbersConnection {
+  edges: [QueryNullableNumbersConnectionEdge!]!
+  nodes: [Number]!
+  other: String
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryNullableNumbersConnectionEdge {
+  cursor: String!
+  node: Number
 }
 
 type QueryNumbersConnection {
-  edges: [QueryNumbersConnectionEdge]!
+  edges: [QueryNumbersConnectionEdge!]!
+  nodes: [Number]!
+  other: String
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -344,12 +502,26 @@ type QueryNumbersConnection {
 
 type QueryNumbersConnectionEdge {
   cursor: String!
+  node: Number
+}
+
+type QueryOddNumbersConnection {
+  edges: [QueryOddNumbersConnectionEdge]!
+  nodes: [Number]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryOddNumbersConnectionEdge {
+  cursor: String!
   node: Number!
 }
 
 type QueryPollsConnection {
-  edges: [QueryPollsConnectionEdge]!
-  extraConnectionField: String!
+  edges: [QueryPollsConnectionEdge!]!
+  extraConnectionField: String
+  nodes: [Poll]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -357,12 +529,13 @@ type QueryPollsConnection {
 
 type QueryPollsConnectionEdge {
   cursor: String!
-  extraEdgeField: Int!
-  node: Poll!
+  extraEdgeField: Int
+  node: Poll
 }
 
 type SharedConnection {
-  edges: [SharedEdge]!
+  edges: [SharedEdge!]!
+  nodes: [Number]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -370,179 +543,212 @@ type SharedConnection {
 
 type SharedEdge {
   cursor: String!
-  node: Number!
+  node: Number
 }"
 `;
 
-exports[`relay example schema queries query array based connections 1`] = `
-Object {
-  "data": Object {
-    "batchNumbers": Object {
+exports[`relay example schema > queries > query array based connections 1`] = `
+{
+  "data": {
+    "batchNumbers": {
       "connectionField": 3,
-      "edges": Array [
-        Object {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
           "edgeField": 0,
-          "node": Object {
+          "node": {
             "number": 0,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
           "edgeField": 1,
-          "node": Object {
+          "node": {
             "number": 1,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
           "edgeField": 2,
-          "node": Object {
+          "node": {
             "number": 2,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
-    "beforeAndAfter": Object {
-      "edges": Array [
-        Object {
+    "batchNumbersLast": {
+      "connectionField": 3,
+      "edges": [
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=",
+          "edgeField": 197,
+          "node": {
+            "number": 197,
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+          "edgeField": 198,
+          "node": {
+            "number": 198,
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+          "edgeField": 199,
+          "node": {
+            "number": 199,
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=",
+      },
+      "totalCount": 200,
+    },
+    "beforeAndAfter": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
-          "node": Object {
+          "node": {
             "number": 8,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-          "node": Object {
+          "node": {
             "number": 9,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
       },
     },
-    "firstAfter": Object {
-      "edges": Array [
-        Object {
+    "firstAfter": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
-          "node": Object {
+          "node": {
             "number": 2,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "number": 3,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
-          "node": Object {
+          "node": {
             "number": 4,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
       },
     },
-    "firstAfterAtEnd": Object {
-      "edges": Array [
-        Object {
+    "firstAfterAtEnd": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
-          "node": Object {
+          "node": {
             "number": 198,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
-          "node": Object {
+          "node": {
             "number": 199,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
         "hasNextPage": false,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
       },
     },
-    "firstAndLast": Object {
-      "edges": Array [
-        Object {
+    "firstAndLast": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "number": 3,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
-          "node": Object {
+          "node": {
             "number": 4,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
       },
     },
-    "lastAtBegining": Object {
-      "edges": Array [
-        Object {
+    "lastAtBegining": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
-          "node": Object {
+          "node": {
             "number": 0,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
-    "lastBefore": Object {
-      "edges": Array [
-        Object {
+    "lastBefore": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
-          "node": Object {
+          "node": {
             "number": 7,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
-          "node": Object {
+          "node": {
             "number": 8,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-          "node": Object {
+          "node": {
             "number": 9,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-        "hasNextPage": false,
+        "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
       },
@@ -551,44 +757,44 @@ Object {
 }
 `;
 
-exports[`relay example schema queries query node and nodes on query type 1`] = `
-Object {
-  "data": Object {
-    "batchNode": Object {
+exports[`relay example schema > queries > query node and nodes on query type 1`] = `
+{
+  "data": {
+    "batchNode": {
       "number": 0,
     },
-    "extraNode": Object {
+    "extraNode": {
       "__typename": "Number",
       "number": 2,
     },
-    "moreNodes": Array [
-      Object {
+    "moreNodes": [
+      {
         "__typename": "Number",
         "number": 2,
       },
-      Object {
+      {
         "__typename": "Number",
         "number": 10,
       },
     ],
-    "node": Object {
+    "node": {
       "id": "TnVtYmVyOjI=",
       "number": 2,
     },
-    "node2": Object {
+    "node2": {
       "number": 2,
     },
-    "nodes": Array [
-      Object {
+    "nodes": [
+      {
         "number": 4,
       },
-      Object {
+      {
         "number": 2,
       },
-      Object {
+      {
         "number": 2,
       },
-      Object {
+      {
         "batchNumber": 0,
       },
     ],
@@ -596,335 +802,583 @@ Object {
 }
 `;
 
-exports[`relay example schema queries query offset based connections 1`] = `
-Object {
-  "data": Object {
-    "beforeAndAfter": Object {
-      "edges": Array [
-        Object {
+exports[`relay example schema > queries > query offset based connections 1`] = `
+{
+  "data": {
+    "beforeAndAfter": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
-          "node": Object {
+          "node": {
             "number": 8,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-          "node": Object {
+          "node": {
             "number": 9,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
       },
     },
-    "firstAfter": Object {
-      "edges": Array [
-        Object {
+    "firstAfter": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
-          "node": Object {
+          "node": {
             "number": 2,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "number": 3,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
-          "node": Object {
+          "node": {
             "number": 4,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
       },
     },
-    "firstAfterAtEnd": Object {
-      "edges": Array [
-        Object {
+    "firstAfterAtEnd": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
-          "node": Object {
+          "node": {
             "number": 198,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
-          "node": Object {
+          "node": {
             "number": 199,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
         "hasNextPage": false,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
       },
     },
-    "firstAndLast": Object {
-      "edges": Array [
-        Object {
+    "firstAndLast": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "number": 3,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
-          "node": Object {
+          "node": {
             "number": 4,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
       },
     },
-    "lastAtBegining": Object {
-      "edges": Array [
-        Object {
+    "lastAtBegining": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
-          "node": Object {
+          "node": {
             "number": 0,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
-    "lastBefore": Object {
-      "edges": Array [
-        Object {
+    "lastBefore": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
-          "node": Object {
+          "node": {
             "number": 7,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
-          "node": Object {
+          "node": {
             "number": 8,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-          "node": Object {
+          "node": {
             "number": 9,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-        "hasNextPage": false,
+        "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
       },
     },
-    "moreOddNumbers": Object {
-      "edges": Array [
-        Object {
+    "moreOddNumbers": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
-          "node": Object {
+          "node": {
             "number": 1,
           },
         },
         null,
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "number": 3,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
       },
     },
-    "numbers": Object {
-      "edges": Array [
-        Object {
+    "numbers": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
-          "node": Object {
+          "node": {
             "number": 0,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
-          "node": Object {
+          "node": {
             "number": 1,
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
-          "node": Object {
+          "node": {
             "number": 2,
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
-    "oddNumbers": Object {
-      "edges": Array [
+    "oddNumbers": {
+      "edges": [
         null,
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
-          "node": Object {
+          "node": {
             "number": 1,
           },
         },
         null,
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
-    "sharedConnection": Object {
-      "edges": Array [
-        Object {
+    "sharedConnection": {
+      "edges": [
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjA=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjI=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjM=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjQ=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjU=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo2",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjY=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjc=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjg=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjk=",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjEw",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMQ==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjEx",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMg==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjEy",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMw==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjEz",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNA==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE0",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNQ==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE1",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNg==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE2",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNw==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE3",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOA==",
-          "node": Object {
+          "node": {
             "id": "TnVtYmVyOjE4",
           },
         },
-        Object {
+        {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOQ==",
-          "node": Object {
+          "node": {
+            "id": "TnVtYmVyOjE5",
+          },
+        },
+      ],
+    },
+    "sharedConnectionAndEdge": {
+      "edges": [
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": {
+            "id": "TnVtYmVyOjA=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": {
+            "id": "TnVtYmVyOjE=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": {
+            "id": "TnVtYmVyOjI=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": {
+            "id": "TnVtYmVyOjM=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": {
+            "id": "TnVtYmVyOjQ=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+          "node": {
+            "id": "TnVtYmVyOjU=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo2",
+          "node": {
+            "id": "TnVtYmVyOjY=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+          "node": {
+            "id": "TnVtYmVyOjc=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": {
+            "id": "TnVtYmVyOjg=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": {
+            "id": "TnVtYmVyOjk=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+          "node": {
+            "id": "TnVtYmVyOjEw",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMQ==",
+          "node": {
+            "id": "TnVtYmVyOjEx",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMg==",
+          "node": {
+            "id": "TnVtYmVyOjEy",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMw==",
+          "node": {
+            "id": "TnVtYmVyOjEz",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNA==",
+          "node": {
+            "id": "TnVtYmVyOjE0",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNQ==",
+          "node": {
+            "id": "TnVtYmVyOjE1",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNg==",
+          "node": {
+            "id": "TnVtYmVyOjE2",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNw==",
+          "node": {
+            "id": "TnVtYmVyOjE3",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOA==",
+          "node": {
+            "id": "TnVtYmVyOjE4",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOQ==",
+          "node": {
+            "id": "TnVtYmVyOjE5",
+          },
+        },
+      ],
+    },
+    "sharedEdgeConnection": {
+      "edges": [
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": {
+            "id": "TnVtYmVyOjA=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": {
+            "id": "TnVtYmVyOjE=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": {
+            "id": "TnVtYmVyOjI=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": {
+            "id": "TnVtYmVyOjM=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": {
+            "id": "TnVtYmVyOjQ=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+          "node": {
+            "id": "TnVtYmVyOjU=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo2",
+          "node": {
+            "id": "TnVtYmVyOjY=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+          "node": {
+            "id": "TnVtYmVyOjc=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": {
+            "id": "TnVtYmVyOjg=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": {
+            "id": "TnVtYmVyOjk=",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+          "node": {
+            "id": "TnVtYmVyOjEw",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMQ==",
+          "node": {
+            "id": "TnVtYmVyOjEx",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMg==",
+          "node": {
+            "id": "TnVtYmVyOjEy",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMw==",
+          "node": {
+            "id": "TnVtYmVyOjEz",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNA==",
+          "node": {
+            "id": "TnVtYmVyOjE0",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNQ==",
+          "node": {
+            "id": "TnVtYmVyOjE1",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNg==",
+          "node": {
+            "id": "TnVtYmVyOjE2",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNw==",
+          "node": {
+            "id": "TnVtYmVyOjE3",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOA==",
+          "node": {
+            "id": "TnVtYmVyOjE4",
+          },
+        },
+        {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOQ==",
+          "node": {
             "id": "TnVtYmVyOjE5",
           },
         },

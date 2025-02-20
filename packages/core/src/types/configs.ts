@@ -1,4 +1,4 @@
-import {
+import type {
   GraphQLEnumType,
   GraphQLEnumTypeConfig,
   GraphQLEnumValueConfig,
@@ -10,122 +10,125 @@ import {
   GraphQLInterfaceTypeConfig,
   GraphQLObjectType,
   GraphQLObjectTypeConfig,
+  GraphQLResolveInfo,
   GraphQLScalarType,
   GraphQLScalarTypeConfig,
   GraphQLUnionType,
   GraphQLUnionTypeConfig,
 } from 'graphql';
-import { Merge } from './utils';
-
-import {
-  FieldKind,
+import type { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options';
+import type { SchemaTypes } from './schema-types';
+import type {
   FieldNullability,
-  FieldOptionsFromKind,
   FieldRequiredness,
-  InputFieldMap,
   InputType,
   InputTypeParam,
+  InterfaceParam,
   ObjectParam,
   OutputType,
-  SchemaTypes,
   TypeParam,
-} from '..';
+} from './type-params';
+import type { Merge, MergeUnion, PartialResolveInfo } from './utils';
 
-export interface GiraphQLQueryTypeConfig
+export interface PothosQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Query';
   graphqlKind: 'Object';
-  giraphqlOptions: GiraphQLSchemaTypes.QueryTypeOptions;
+  pothosOptions: PothosSchemaTypes.QueryTypeOptions;
 }
-export interface GiraphQLMutationTypeConfig
+export interface PothosMutationTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Mutation';
   graphqlKind: 'Object';
-  giraphqlOptions: GiraphQLSchemaTypes.MutationTypeOptions;
+  pothosOptions: PothosSchemaTypes.MutationTypeOptions;
 }
 
-export interface GiraphQLSubscriptionTypeConfig
+export interface PothosSubscriptionTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Subscription';
   graphqlKind: 'Object';
-  giraphqlOptions: GiraphQLSchemaTypes.SubscriptionTypeOptions;
+  pothosOptions: PothosSchemaTypes.SubscriptionTypeOptions;
 }
 
-export interface GiraphQLObjectTypeConfig
+export interface PothosObjectTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Object';
   graphqlKind: 'Object';
-  interfaces: ObjectParam<SchemaTypes>[];
-  giraphqlOptions: GiraphQLSchemaTypes.ObjectTypeOptions;
+  interfaces: InterfaceParam<SchemaTypes>[];
+  pothosOptions: PothosSchemaTypes.ObjectTypeOptions;
 }
 
-export interface GiraphQLInterfaceTypeConfig
+export interface PothosInterfaceTypeConfig
   extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Interface';
   graphqlKind: 'Interface';
-  interfaces: ObjectParam<SchemaTypes>[];
-  giraphqlOptions: GiraphQLSchemaTypes.InterfaceTypeOptions;
+  interfaces: InterfaceParam<SchemaTypes>[];
+  pothosOptions: PothosSchemaTypes.InterfaceTypeOptions;
 }
 
-export interface GiraphQLUnionTypeConfig
+export interface PothosUnionTypeConfig
   extends Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'> {
   kind: 'Union';
   graphqlKind: 'Union';
   types: ObjectParam<SchemaTypes>[];
-  giraphqlOptions: GiraphQLSchemaTypes.UnionTypeOptions;
+  pothosOptions: PothosSchemaTypes.UnionTypeOptions;
 }
 
-export interface GiraphQLEnumTypeConfig extends GraphQLEnumTypeConfig {
+export interface PothosEnumTypeConfig extends GraphQLEnumTypeConfig {
   kind: 'Enum';
   graphqlKind: 'Enum';
-  giraphqlOptions: GiraphQLSchemaTypes.EnumTypeOptions;
+  pothosOptions: PothosSchemaTypes.EnumTypeOptions;
 }
 
-export interface GiraphQLScalarTypeConfig extends GraphQLScalarTypeConfig<unknown, unknown> {
+export interface PothosScalarTypeConfig extends GraphQLScalarTypeConfig<unknown, unknown> {
   kind: 'Scalar';
   graphqlKind: 'Scalar';
-  giraphqlOptions: GiraphQLSchemaTypes.ScalarTypeOptions;
+  pothosOptions: PothosSchemaTypes.ScalarTypeOptions;
 }
 
-export interface GiraphQLInputObjectTypeConfig
-  extends Omit<GraphQLInputObjectTypeConfig, 'fields'> {
+export interface PothosInputObjectTypeConfig extends Omit<GraphQLInputObjectTypeConfig, 'fields'> {
   kind: 'InputObject';
   graphqlKind: 'InputObject';
-  giraphqlOptions: GiraphQLSchemaTypes.InputObjectTypeOptions;
+  pothosOptions: PothosSchemaTypes.InputObjectTypeOptions;
 }
 
-export type GiraphQLTypeConfig =
-  | GiraphQLEnumTypeConfig
-  | GiraphQLInputObjectTypeConfig
-  | GiraphQLInterfaceTypeConfig
-  | GiraphQLMutationTypeConfig
-  | GiraphQLObjectTypeConfig
-  | GiraphQLQueryTypeConfig
-  | GiraphQLScalarTypeConfig
-  | GiraphQLSubscriptionTypeConfig
-  | GiraphQLUnionTypeConfig;
+export type PothosTypeConfig =
+  | PothosEnumTypeConfig
+  | PothosInputObjectTypeConfig
+  | PothosInterfaceTypeConfig
+  | PothosMutationTypeConfig
+  | PothosObjectTypeConfig
+  | PothosQueryTypeConfig
+  | PothosScalarTypeConfig
+  | PothosSubscriptionTypeConfig
+  | PothosUnionTypeConfig;
 
-export type GiraphQLTypeKind = GiraphQLTypeConfig['kind'];
+export type PothosTypeKind = PothosTypeConfig['kind'];
 
-export type GiraphQLKindToGraphQLTypeClass<T extends GiraphQLTypeKind> = {
+export type PothosKindToGraphQLTypeClass<T extends PothosTypeKind> = {
   Object: GraphQLObjectType;
   Interface: GraphQLInterfaceType;
   Union: GraphQLUnionType;
   Enum: GraphQLEnumType;
   Scalar: GraphQLScalarType;
   InputObject: GraphQLInputObjectType;
-}[GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[T]];
+}[PothosSchemaTypes.PothosKindToGraphQLType[T]];
 
-export type GiraphQLFieldKindToConfig<Types extends SchemaTypes, Kind extends FieldKind> = {
+export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends FieldKind> = {
   [K in FieldKind]: Merge<
     Omit<GraphQLFieldConfig<unknown, object>, 'args' | 'type'> & {
       kind: K;
-      graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[K];
+      graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[K];
       parentType: string;
       name: string;
-      type: GiraphQLOutputFieldType<Types>;
-      args: Record<string, GiraphQLInputFieldConfig<Types>>;
-      giraphqlOptions: FieldOptionsFromKind<
+      type: PothosOutputFieldType<Types>;
+      args: Record<string, PothosInputFieldConfig<Types>>;
+      argMappers: ((
+        args: Record<string, unknown>,
+        context: Types['Context'],
+        info: PartialResolveInfo,
+      ) => Record<string, unknown>)[];
+      pothosOptions: FieldOptionsFromKind<
         Types,
         unknown,
         TypeParam<Types>,
@@ -134,42 +137,47 @@ export type GiraphQLFieldKindToConfig<Types extends SchemaTypes, Kind extends Fi
         K,
         unknown,
         unknown
-      >;
+      > &
+        MergeUnion<
+          {
+            [K in keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]: PothosSchemaTypes.InferredFieldOptions<SchemaTypes>[K];
+          }[keyof PothosSchemaTypes.InferredFieldOptions<SchemaTypes>]
+        >;
     }
   >;
 }[Kind];
 
-export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
+export interface PothosInputFieldConfig<Types extends SchemaTypes>
   extends Omit<GraphQLInputFieldConfig, 'type'> {
   kind: 'Arg' | 'InputObject';
   graphqlKind: 'Arg' | 'InputObject';
   name: string;
   parentField: string | undefined;
   parentType: string;
-  type: GiraphQLInputFieldType<Types>;
-  giraphqlOptions: GiraphQLSchemaTypes.InputFieldOptionsByKind<
+  type: PothosInputFieldType<Types>;
+  pothosOptions: PothosSchemaTypes.InputFieldOptionsByKind<
     Types,
     InputTypeParam<Types>,
     FieldRequiredness<[unknown]>
-  >[keyof GiraphQLSchemaTypes.InputFieldOptionsByKind];
+  >[keyof PothosSchemaTypes.InputFieldOptionsByKind];
 }
 
-export interface GiraphQLEnumValueConfig<Types extends SchemaTypes> extends GraphQLEnumValueConfig {
-  giraphqlOptions: GiraphQLSchemaTypes.EnumValueConfig<Types>;
+export interface PothosEnumValueConfig<Types extends SchemaTypes> extends GraphQLEnumValueConfig {
+  pothosOptions: PothosSchemaTypes.EnumValueConfig<Types>;
 }
 
-export type GiraphQLOutputFieldConfig<Types extends SchemaTypes> = GiraphQLFieldKindToConfig<
+export type PothosOutputFieldConfig<Types extends SchemaTypes> = PothosFieldKindToConfig<
   Types,
   FieldKind
 >;
 
-export type GiraphQLFieldConfig<Types extends SchemaTypes> =
-  | GiraphQLInputFieldConfig<Types>
-  | GiraphQLOutputFieldConfig<Types>;
+export type PothosFieldConfig<Types extends SchemaTypes> =
+  | PothosInputFieldConfig<Types>
+  | PothosOutputFieldConfig<Types>;
 
-export type GraphQLFieldKind = GiraphQLFieldConfig<SchemaTypes>['graphqlKind'];
+export type GraphQLFieldKind = PothosFieldConfig<SchemaTypes>['graphqlKind'];
 
-export type GiraphQLOutputFieldType<Types extends SchemaTypes> =
+export type PothosOutputFieldType<Types extends SchemaTypes> =
   | {
       kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
       ref: OutputType<Types>;
@@ -177,15 +185,16 @@ export type GiraphQLOutputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: GiraphQLNameOutputFieldType<Types>;
+      type: PothosOutputFieldType<Types>;
       nullable: boolean;
     };
-export type GiraphQLNameOutputFieldType<Types extends SchemaTypes> = Exclude<
-  GiraphQLOutputFieldType<Types>,
+
+export type PothosNameOutputFieldType<Types extends SchemaTypes> = Exclude<
+  PothosOutputFieldType<Types>,
   { kind: 'List' }
 >;
 
-export type GiraphQLInputFieldType<Types extends SchemaTypes> =
+export type PothosInputFieldType<Types extends SchemaTypes> =
   | {
       kind: 'Enum' | 'InputObject' | 'Scalar';
       ref: InputType<Types>;
@@ -193,11 +202,11 @@ export type GiraphQLInputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: GiraphQLNameInputFieldType<Types>;
+      type: PothosInputFieldType<Types>;
       required: boolean;
     };
 
-export type GiraphQLNameInputFieldType<Types extends SchemaTypes> = Exclude<
-  GiraphQLInputFieldType<Types>,
+export type PothosNameInputFieldType<Types extends SchemaTypes> = Exclude<
+  PothosInputFieldType<Types>,
   { kind: 'List' }
 >;

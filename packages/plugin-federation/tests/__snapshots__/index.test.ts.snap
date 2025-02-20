@@ -1,0 +1,240 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`federation accounts schema generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.5", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject"])
+
+type Media
+  @key(fields: "id")
+  @interfaceObject
+{
+  id: ID
+  test: String
+}
+
+type Query {
+  me: User
+}
+
+type User
+  @key(fields: "id", resolvable: true)
+{
+  id: ID
+  name: String
+  username: String @shareable
+}"
+`;
+
+exports[`federation accounts schema generates expected schema 2`] = `
+"type Media {
+  id: ID
+  test: String
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  me: User
+}
+
+type User {
+  id: ID
+  name: String
+  username: String
+}
+
+scalar _Any
+
+union _Entity = Media | User
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;
+
+exports[`federation inventory schema generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@requires"])
+
+type Product
+  @key(fields: "upc")
+  @extends
+{
+  price: Float @external
+  weight: Float @external
+  upc: String
+  inStock: Boolean
+  shippingEstimate: Float @requires(fields: "price weight")
+}"
+`;
+
+exports[`federation inventory schema generates expected schema 2`] = `
+"type Product {
+  inStock: Boolean
+  price: Float
+  shippingEstimate: Float
+  upc: String
+  weight: Float
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+scalar _Any
+
+union _Entity = Product
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;
+
+exports[`federation products schema generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@composeDirective"])
+  @link(url: "https://myspecs.dev/myCustomDirective/v1.0", import: ["@custom"])
+  @composeDirective(name: "@custom")
+
+directive @custom on INTERFACE | OBJECT
+
+interface Media
+  @key(fields: "id")
+{
+  id: ID
+}
+
+type Post implements Media
+  @key(fields: "id")
+{
+  id: ID
+  title: String
+}
+
+type Product
+  @key(fields: "upc")
+  @custom
+{
+  upc: String
+  name: String
+  price: Float
+  weight: Float
+}
+
+type Query {
+  post: Post
+  topProducts(first: Int = 5): [Product!]
+}"
+`;
+
+exports[`federation products schema generates expected schema 2`] = `
+"directive @custom on INTERFACE | OBJECT
+
+interface Media {
+  id: ID
+}
+
+type Post implements Media {
+  id: ID
+  title: String
+}
+
+type Product {
+  name: String
+  price: Float
+  upc: String
+  weight: Float
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  post: Post
+  topProducts(first: Int = 5): [Product!]
+}
+
+scalar _Any
+
+union _Entity = Post | Product
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;
+
+exports[`federation reviews schema generates expected schema 1`] = `
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@provides", "@tag"])
+
+type Product
+  @key(fields: "upc")
+  @extends
+{
+  upc: String
+  reviews: [Review!] @deprecated(reason: "test") @tag(name: "test")
+}
+
+type Review
+  @key(fields: "id")
+{
+  id: ID
+  body: String
+  author: User @provides(fields: "username")
+  product: Product
+}
+
+type User
+  @key(fields: "id")
+  @extends
+{
+  username: String @external
+  id: ID
+  reviews: [Review!]
+}"
+`;
+
+exports[`federation reviews schema generates expected schema 2`] = `
+"type Product {
+  reviews: [Review!] @deprecated(reason: "test")
+  upc: String
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type Review {
+  author: User
+  body: String
+  id: ID
+  product: Product
+}
+
+type User {
+  id: ID
+  reviews: [Review!]
+  username: String
+}
+
+scalar _Any
+
+union _Entity = Product | Review | User
+
+type _Service {
+  """
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  """
+  sdl: String
+}"
+`;

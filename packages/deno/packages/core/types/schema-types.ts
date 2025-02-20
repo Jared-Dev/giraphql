@@ -1,5 +1,6 @@
 // @ts-nocheck
-export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
+import { InferredFieldOptionsKind } from './builder-options.ts';
+export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
     outputShapes: {
         String: unknown;
         ID: unknown;
@@ -15,6 +16,7 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
         Boolean: unknown;
     };
     Objects: {};
+    Inputs: {};
     Interfaces: {};
     Scalars: {
         String: {
@@ -40,13 +42,42 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
     };
     DefaultFieldNullability: boolean;
     DefaultInputFieldRequiredness: boolean;
+    InferredFieldOptionsKind: InferredFieldOptionsKind;
     Root: object;
     Context: object;
 }
-export type MergedScalars<PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>> = SchemaTypes["Scalars"] & {
-    [K in keyof DefaultScalars | keyof PartialTypes["Scalars"]]: K extends keyof PartialTypes["Scalars"] ? PartialTypes["Scalars"][K] : K extends keyof DefaultScalars ? DefaultScalars[K] : never;
-};
+export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> = (PartialTypes["Defaults"] extends "v3" ? V3DefaultScalars : DefaultScalars) extends infer Defaults ? SchemaTypes["Scalars"] & {
+    [K in keyof Defaults | keyof PartialTypes["Scalars"]]: K extends keyof PartialTypes["Scalars"] ? PartialTypes["Scalars"][K] : K extends keyof Defaults ? Defaults[K] : never;
+} : never;
+export interface VersionedSchemaBuilderOptions<Types extends SchemaTypes> {
+    v3: PothosSchemaTypes.V3SchemaBuilderOptions<Types>;
+}
+export interface DefaultsByVersion {
+    v3: PothosSchemaTypes.V3DefaultSchemaTypes;
+}
 export interface DefaultScalars {
+    String: {
+        Input: string;
+        Output: string;
+    };
+    ID: {
+        Input: string;
+        Output: bigint | number | string;
+    };
+    Int: {
+        Input: number;
+        Output: number;
+    };
+    Float: {
+        Input: number;
+        Output: number;
+    };
+    Boolean: {
+        Input: boolean;
+        Output: boolean;
+    };
+}
+export interface V3DefaultScalars {
     String: {
         Input: string;
         Output: string;
@@ -69,5 +100,6 @@ export interface DefaultScalars {
     };
 }
 export type BaseScalarNames = "Boolean" | "Float" | "ID" | "Int" | "String";
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export type ScalarName<Types extends SchemaTypes> = string & (BaseScalarNames | keyof Types["Scalars"]);
 export type RootName = "Mutation" | "Query" | "Subscription";

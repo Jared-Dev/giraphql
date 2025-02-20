@@ -1,5 +1,5 @@
+import { createTestServer } from '@pothos/test-utils';
 import { PubSub } from 'graphql-subscriptions';
-import { createTestServer } from '@giraphql/test-utils';
 import { Poll } from './data';
 import schema from './schema';
 
@@ -7,7 +7,7 @@ export const pubsub = new PubSub();
 
 const server = createTestServer({
   schema,
-  contextFactory: () => ({
+  context: () => ({
     Poll,
     pubsub,
   }),

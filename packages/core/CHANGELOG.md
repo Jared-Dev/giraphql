@@ -1,5 +1,589 @@
 # Change Log
 
+## 4.4.0
+
+### Minor Changes
+
+- 456da16: Add support for custom names on Root types
+
+## 4.3.0
+
+### Minor Changes
+
+- e6ca3fa: Fix a couple incorrect generics in plugin system types
+
+## 4.2.0
+
+### Minor Changes
+
+- 8219539: Add proper typeing for isOneOf option on builder.inputType
+
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.0.2
+
+### Patch Changes
+
+- 777f6de: Add builder.$inferSchemaTypes
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+## 3.41.2
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.41.1
+
+### Patch Changes
+
+- f763170: Add delete method to context caches
+
+## 3.41.0
+
+### Minor Changes
+
+- 0d3778a: Allow inputRef to define inputs without normalization via builder.inputRef<Type,
+  false>(...)
+
+## 3.40.1
+
+### Patch Changes
+
+- 0f5cfa9: Fix bug when decoding lists of global IDs with null items
+
+## 3.40.0
+
+### Minor Changes
+
+- 41fe7d4: Make options optional when registering existing scalars/types
+
+## 3.39.0
+
+### Minor Changes
+
+- 1483e74: PothosError now extends GraphQL error
+
+## 3.38.0
+
+### Minor Changes
+
+- 22d1426a: Support for adding type mappings in SchemaTypes for Input objects
+
+## 3.37.0
+
+### Minor Changes
+
+- f8fb4e6b: Add support for $inferType and $inferInput helpers on Refs
+
+## 3.36.0
+
+### Minor Changes
+
+- 96ba1822: Improve validation for global IDs
+
+## 3.35.0
+
+### Minor Changes
+
+- b83e671b: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
+### Patch Changes
+
+- c123a285: If available, prefer Buffer over btoa/atob for encoding and decoding cursor strings
+  to/from base64.
+
+## 3.34.0
+
+### Minor Changes
+
+- f0247390: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
+## 3.33.1
+
+### Patch Changes
+
+- 6f155d82: Improve normalization of input types so that objects with functions are not normalized
+
+## 3.33.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
+## 3.32.1
+
+### Patch Changes
+
+- adc2d33d: Fix inputRefs when using any as scalar type
+
+## 3.32.0
+
+### Minor Changes
+
+- be23f48d: Fix issue with inputRef not serializing symbols correctly
+
+## 3.31.2
+
+### Patch Changes
+
+- bd22a282: revert improved inference for inputRef.implement
+
+## 3.31.1
+
+### Patch Changes
+
+- 425435af: Improve typing of inputRefs and fix incorrectly normalized function properties of
+  inputRef types
+
+## 3.31.0
+
+### Minor Changes
+
+- 664e794c: Fixed a couple bugs related to how types are defined for inputRefs
+
+### Patch Changes
+
+- 5d3f7b97: Fix the EmptyToOptional utility type when strict mode is disabled
+
+## 3.30.0
+
+### Minor Changes
+
+- 013acf2c: Ability to configure meta (description, deprecationReason, extensions) for TS-based enum
+  types
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.29.0
+
+### Minor Changes
+
+- f9b0e2eb: Add onPrepare hook to buildCache
+
+## 3.28.0
+
+### Minor Changes
+
+- e8d75349: - allow connection fields (edges / pageInfo) to be promises
+  - add completeValue helper to core for unwrapping MaybePromise values
+  - set nodes as null if edges is null and the field permits a null return
+
+## 3.27.1
+
+### Patch Changes
+
+- f2259558: Fix duplicate interfaces when building a schema multiple times
+
+## 3.27.0
+
+### Minor Changes
+
+- 42bf6190: Allow unionType to receive types as a thunk
+
+## 3.26.0
+
+### Minor Changes
+
+- ec411ea1: Allow / unwrap Promises in "expose" type fields
+
+## 3.25.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.24.1
+
+### Patch Changes
+
+- 3021b43a: Fix an issue with detecting field nullability caused by an incorrrectly distributed type
+
+## 3.24.0
+
+### Minor Changes
+
+- c3db3bcd: Enable adding interfaces to connections and edges
+
+### Patch Changes
+
+- fd08a9d9: allow readonly lists to be exposed and improve inference of t.expose fields
+- 02072e1f: return a Ref from builder.queryType
+
+## 3.23.2
+
+### Patch Changes
+
+- b1cabe44: Fix types for nullable inputs in non-strict mode
+
+## 3.23.1
+
+### Patch Changes
+
+- 7212a3d1: use Buffer from globalThis to avoid compilers detecting ussage of global Buffer
+- fae0f943: Default schema extensions to an empty object
+
+## 3.23.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
+## 3.22.9
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.22.8
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.22.7
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.22.6
+
+### Patch Changes
+
+- d350f842: update dev deps
+
+## 3.22.5
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.22.4
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.22.3
+
+### Patch Changes
+
+- c28b8712: restore esm package.json
+
+## 3.22.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.22.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.22.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.21.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.21.0
+
+### Minor Changes
+
+- cf93c7c9: Allow nullable arguments to set null as a default value
+- cf93c7c9: Fix some edge cases with how option objects become optional when no arguments are
+  required
+
+## 3.20.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.19.1
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
+## 3.19.0
+
+### Minor Changes
+
+- c9b02338: Support context when using custom gloablID encoding or decoding
+
+## 3.18.0
+
+### Minor Changes
+
+- 390e74a7: Add `idFieldOptions` to relay plugin options
+
+## 3.17.0
+
+### Minor Changes
+
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
+## 3.16.0
+
+### Minor Changes
+
+- 679baa83: Add option to disable schema sorting
+
+## 3.15.0
+
+### Minor Changes
+
+- 33789284: Add utils for base64 encoding that works across environments
+
+## 3.14.0
+
+### Minor Changes
+
+- 13216a3d: remove all remaining circular imports
+
+## 3.13.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.12.2
+
+### Patch Changes
+
+- 784777c4: Fixed typo in input-field types
+
+## 3.12.1
+
+### Patch Changes
+
+- 7311904e: Fix nullability option when using t.expose with a list type
+
+## 3.12.0
+
+### Minor Changes
+
+- 32cb5073: Fix resolveType not being correctly applied for interfaces when isTypeOf is not used
+
+## 3.11.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 3.11.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.10.1
+
+### Patch Changes
+
+- 89f09498: Fix issue with argument mapping utils that caused nested lists of input objects to be
+  transformed incorrectly in the relay plugin
+
+## 3.10.0
+
+### Minor Changes
+
+- 205a8c73: Add support for lazyloaded interfaces and ref checks for interfaces
+
+### Patch Changes
+
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
+## 3.9.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- 040d0664: Use direct imports rather than importing from index files where possible
+
+## 3.8.0
+
+### Minor Changes
+
+- f0741c42: Set typename on field configs based on usage rather than field builder constructor.
+
+## 3.7.1
+
+### Patch Changes
+
+- 6e4ccc7b: Fix loadable refs when used with builder.objectType
+
+## 3.7.0
+
+### Minor Changes
+
+- 9a0ae33e: Omit resolver for exposed fields with matching names to improve perfomance in
+  graphql-jit
+
+## 3.6.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+## 3.5.1
+
+### Patch Changes
+
+- 7d69b286: Fix field names that match intrinsic object properties (eg constructor)
+
+## 3.5.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.4.0
+
+### Minor Changes
+
+- c0bdbc1b: Fix type for InputFieldRef.kind
+
+### Patch Changes
+
+- cc12c8b3: Huge thank you to @kidqueb for contributing the first one-time sponsorship for pothos!
+
+## 3.3.3
+
+### Patch Changes
+
+- cf4a2d14: cleanup style and comments
+
+## 3.3.2
+
+### Patch Changes
+
+- 122dd782: Allow subscribe function to return a promise
+
+## 3.3.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.3.0
+
+### Minor Changes
+
+- 80b24ec1: Add ability to branded objects loaded by relay plugin with typename to reduce need to
+  isTypeOf checks
+
+## 3.2.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 3.1.2
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.1.1
+
+### Patch Changes
+
+- 12ac37c7: Update readme links
+
+## 3.1.0
+
+### Minor Changes
+
+- 4094e70a: Add initial support for new federation plugin
+
+## 3.0.1
+
+### Patch Changes
+
+- a01abb7f: Fix compatability between prisma and auth plugins
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.23.0
+
+### Minor Changes
+
+- afa16607: Fixed types for serialize in scalarType options
+
+## 2.22.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.21.0
 
 ### Minor Changes

@@ -1,101 +1,72 @@
 import './global-types';
 import SchemaBuilder, {
   BasePlugin,
-  FieldMap,
-  InterfaceParam,
+  type FieldMap,
+  type InterfaceFieldsShape,
+  type InterfaceParam,
   InterfaceRef,
-  InterfaceTypeOptions,
-  Normalize,
+  type Normalize,
+  type ObjectFieldsShape,
   ObjectRef,
-  ParentShape,
-  SchemaTypes,
-} from '@giraphql/core';
-import { OutputShapeFromFields } from './types';
+  type ParentShape,
+  type SchemaTypes,
+  type UnionToIntersection,
+} from '@pothos/core';
+import type { OutputShapeFromFields } from './types';
 
-const pluginName = 'simpleObjects' as const;
+const pluginName = 'simpleObjects';
 
 export default pluginName;
 
-export class GiraphQLSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLSimpleObjectsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosSimpleObjectsPlugin);
 
-const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const proto: PothosSchemaTypes.SchemaBuilder<SchemaTypes> =
+  SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],
   Fields extends FieldMap,
   Shape extends Normalize<
-    OutputShapeFromFields<Fields> & ParentShape<SchemaTypes, Interfaces[number]>
+    OutputShapeFromFields<Fields> &
+      UnionToIntersection<ParentShape<SchemaTypes, Interfaces[number]>>
   >,
 >(
   name: string,
-  options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
+  options: PothosSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
+  extraFields?: ObjectFieldsShape<SchemaTypes, Shape>,
 ) {
-  const ref = new ObjectRef<Shape>(name);
+  const ref = new ObjectRef<SchemaTypes, Shape>(name);
 
-  if (options.fields) {
-    const originalFields = options.fields;
+  this.objectType(ref, options as PothosSchemaTypes.ObjectTypeOptions);
 
-    // eslint-disable-next-line no-param-reassign
-    options.fields = (t) => {
-      const fields = originalFields(t);
-
-      Object.keys(fields).forEach((key) => {
-        this.configStore.onFieldUse(fields[key], (config) => {
-          if (config.kind === 'Object') {
-            // eslint-disable-next-line no-param-reassign
-            config.resolve = (parent) =>
-              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
-          }
-        });
-      });
-
-      return fields;
-    };
+  if (extraFields) {
+    this.objectFields(ref, extraFields);
   }
-
-  this.objectType(ref, options as GiraphQLSchemaTypes.ObjectTypeOptions);
 
   return ref;
 };
 
 proto.simpleInterface = function simpleInterface<
-  Fields extends FieldMap,
-  Shape extends OutputShapeFromFields<Fields>,
   Interfaces extends InterfaceParam<SchemaTypes>[],
+  Fields extends FieldMap,
+  Shape extends Normalize<
+    OutputShapeFromFields<Fields> &
+      UnionToIntersection<ParentShape<SchemaTypes, Interfaces[number]>>
+  >,
 >(
   name: string,
-  options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
+  options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
+  extraFields?: InterfaceFieldsShape<SchemaTypes, Shape>,
 ) {
-  const ref = new InterfaceRef<Shape>(name);
+  const ref = new InterfaceRef<SchemaTypes, Shape>(name);
 
-  if (options.fields) {
-    const originalFields = options.fields;
+  this.interfaceType(ref, options as object);
 
-    // eslint-disable-next-line no-param-reassign
-    options.fields = (t) => {
-      const fields = originalFields(t);
-
-      Object.keys(fields).forEach((key) => {
-        this.configStore.onFieldUse(fields[key], (config) => {
-          if (config.kind === 'Interface') {
-            // eslint-disable-next-line no-param-reassign
-            config.resolve = (parent) =>
-              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
-          }
-        });
-      });
-
-      return fields;
-    };
+  if (extraFields) {
+    this.interfaceFields(ref, extraFields);
   }
-
-  this.interfaceType(
-    ref,
-    options as InterfaceTypeOptions<SchemaTypes, InterfaceParam<SchemaTypes>, Shape, Interfaces>,
-  );
 
   return ref;
 };

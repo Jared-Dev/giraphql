@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { EnumValues, FieldNullability, FieldRequiredness, InputFieldMap, InputType, InterfaceParam, ObjectParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { DirectiveLocation, Directives } from './types.ts';
-import { GiraphQLDirectivesPlugin } from './index.ts';
+import type { PothosDirectivesPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            directives: GiraphQLDirectivesPlugin<Types>;
+            directives: PothosDirectivesPlugin<Types>;
         }
         export interface UserSchemaTypes {
             Directives: Record<string, {
@@ -15,9 +15,15 @@ declare global {
             }>;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-            Directives: undefined extends PartialTypes["Directives"] ? {} : PartialTypes["Directives"] & {};
+            Directives: PartialTypes["Directives"] & {};
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+            directives?: {
+                useGraphQLToolsUnorderedDirectives?: boolean;
+            };
+        }
+        export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+            directives: never;
             useGraphQLToolsUnorderedDirectives?: boolean;
         }
         export interface EnumTypeOptions<Types extends SchemaTypes = SchemaTypes, Values extends EnumValues<Types> = EnumValues<Types>> extends BaseTypeOptions<Types> {
@@ -60,6 +66,9 @@ declare global {
         }
         export interface EnumValueConfig<Types extends SchemaTypes = SchemaTypes> {
             directives?: Directives<Types, "ENUM_VALUE">;
+        }
+        export interface BuildSchemaOptions<Types extends SchemaTypes> {
+            schemaDirectives?: Directives<Types, "SCHEMA">;
         }
     }
 }

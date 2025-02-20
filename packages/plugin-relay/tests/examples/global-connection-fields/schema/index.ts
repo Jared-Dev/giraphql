@@ -8,10 +8,14 @@ interface GlobalIDInputsShape {
     id: string;
     typename: string;
   };
-  idList: {
-    id: string;
-    typename: string;
-  }[];
+  idList: (
+    | {
+        id: string;
+        typename: string;
+      }
+    | null
+    | undefined
+  )[];
 }
 
 interface CircularWithoutGlobalIds {
@@ -36,7 +40,7 @@ GlobalIDInput.implement({
     idList: t.globalIDList({
       required: {
         list: true,
-        items: true,
+        items: false,
       },
     }),
   }),
@@ -64,7 +68,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve(parent, args) {
+      resolve(_parent, args) {
         return JSON.stringify({
           normal: args.normalId,
           inputObj: {
@@ -80,10 +84,13 @@ builder.queryType({
               id: args.inputObj.id.id,
               typename: args.inputObj.id.typename,
             },
-            idList: args.inputObj.idList?.map((id) => ({
-              id: id.id,
-              typename: id.typename,
-            })),
+            idList: args.inputObj.idList?.map(
+              (id) =>
+                id && {
+                  id: id.id,
+                  typename: id.typename,
+                },
+            ),
           },
           id: {
             id: args.id.id,
@@ -95,7 +102,7 @@ builder.queryType({
   }),
 });
 
-builder.mutationType({ fields: (t) => ({}) });
+builder.mutationType({ fields: () => ({}) });
 
 builder.relayMutationField(
   'exampleMutation',
@@ -107,7 +114,7 @@ builder.relayMutationField(
     }),
   },
   {
-    resolve: async (root, args) => {
+    resolve: (_root, args) => {
       if (!args.input.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
@@ -138,7 +145,7 @@ builder.relayMutationField(
   },
   {
     description: 'mutation field',
-    resolve: async (root, args) => {
+    resolve: (_root, args) => {
       if (!args.customInput.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
@@ -171,4 +178,4 @@ builder.globalConnectionFields((t) => ({
   }),
 }));
 
-export default builder.toSchema({});
+export default builder.toSchema();

@@ -1,10 +1,10 @@
-import { createTestServer } from '@giraphql/test-utils';
-import { ComplexityResult } from '../../src';
+import { createTestServer } from '@pothos/test-utils';
+import type { ComplexityResult } from '../../src';
 import schema from './schema';
 
 const server = createTestServer({
   schema,
-  contextFactory: (): { complexity: ComplexityResult } => ({
+  context: (): { complexity: ComplexityResult } => ({
     complexity: {
       depth: 5,
       breadth: 10,

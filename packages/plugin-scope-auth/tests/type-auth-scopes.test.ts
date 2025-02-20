@@ -17,7 +17,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -25,9 +25,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdmin": Object {
+      {
+        "data": {
+          "ObjForAdmin": {
             "field": "ok",
           },
         },
@@ -55,11 +55,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdmin": null,
+      {
+        "data": {
+          "ObjForAdmin": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdmin],
         ],
       }
@@ -79,7 +81,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -87,9 +89,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForSyncPerm": Object {
+      {
+        "data": {
+          "ObjForSyncPerm": {
             "field": "ok",
           },
         },
@@ -117,11 +119,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForSyncPerm": null,
+      {
+        "data": {
+          "ObjForSyncPerm": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForSyncPerm],
         ],
       }
@@ -141,7 +145,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -149,9 +153,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAsyncPerm": Object {
+      {
+        "data": {
+          "ObjForAsyncPerm": {
             "field": "ok",
           },
         },
@@ -179,13 +183,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAsyncPerm": Object {
+      {
+        "data": {
+          "ObjForAsyncPerm": {
             "field": null,
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAsyncPerm],
         ],
       }
@@ -205,7 +209,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -213,9 +217,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAny": Object {
+      {
+        "data": {
+          "ObjForAny": {
             "field": "ok",
           },
         },
@@ -236,7 +240,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -244,9 +248,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAny": Object {
+      {
+        "data": {
+          "ObjForAny": {
             "field": "ok",
           },
         },
@@ -267,7 +271,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -275,9 +279,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAny": Object {
+      {
+        "data": {
+          "ObjForAny": {
             "field": "ok",
           },
         },
@@ -305,11 +309,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAny": null,
+      {
+        "data": {
+          "ObjForAny": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAny],
         ],
       }
@@ -329,7 +335,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -338,9 +344,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAll": Object {
+      {
+        "data": {
+          "ObjForAll": {
             "field": "ok",
           },
         },
@@ -361,7 +367,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -369,11 +375,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAll": null,
+      {
+        "data": {
+          "ObjForAll": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
         ],
       }
@@ -393,7 +401,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -402,11 +410,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAll": null,
+      {
+        "data": {
+          "ObjForAll": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
         ],
       }
@@ -426,7 +436,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -435,11 +445,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAll": null,
+      {
+        "data": {
+          "ObjForAll": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
         ],
       }
@@ -459,16 +471,18 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjEmptyAny": null,
+      {
+        "data": {
+          "ObjEmptyAny": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjEmptyAny],
         ],
       }
@@ -488,14 +502,14 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjEmptyAll": Object {
+      {
+        "data": {
+          "ObjEmptyAll": {
             "field": "ok",
           },
         },
@@ -516,7 +530,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -524,9 +538,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdminFn": Object {
+      {
+        "data": {
+          "ObjForAdminFn": {
             "field": "ok",
           },
         },
@@ -547,7 +561,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -555,9 +569,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdminAsyncFn": Object {
+      {
+        "data": {
+          "ObjForAdminAsyncFn": {
             "field": "ok",
           },
         },
@@ -585,11 +599,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdminFn": null,
+      {
+        "data": {
+          "ObjForAdminFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdminFn],
         ],
       }
@@ -616,11 +632,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAdminAsyncFn": null,
+      {
+        "data": {
+          "ObjForAdminAsyncFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdminAsyncFn],
         ],
       }
@@ -640,7 +658,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -648,9 +666,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForSyncPermFn": Object {
+      {
+        "data": {
+          "ObjForSyncPermFn": {
             "field": "ok",
           },
         },
@@ -679,13 +697,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForSyncPermFn": Object {
+      {
+        "data": {
+          "ObjForSyncPermFn": {
             "field": null,
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForSyncPermFn],
         ],
       }
@@ -705,7 +723,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -713,9 +731,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAsyncPermFn": Object {
+      {
+        "data": {
+          "ObjForAsyncPermFn": {
             "field": "ok",
           },
         },
@@ -744,11 +762,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAsyncPermFn": null,
+      {
+        "data": {
+          "ObjForAsyncPermFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
         ],
       }
@@ -768,7 +788,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -776,9 +796,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAnyFn": Object {
+      {
+        "data": {
+          "ObjForAnyFn": {
             "field": "ok",
           },
         },
@@ -799,7 +819,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -807,9 +827,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAnyFn": Object {
+      {
+        "data": {
+          "ObjForAnyFn": {
             "field": "ok",
           },
         },
@@ -830,7 +850,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -838,9 +858,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAnyFn": Object {
+      {
+        "data": {
+          "ObjForAnyFn": {
             "field": "ok",
           },
         },
@@ -868,11 +888,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAnyFn": null,
+      {
+        "data": {
+          "ObjForAnyFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAnyFn],
         ],
       }
@@ -892,7 +914,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -901,9 +923,9 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAllFn": Object {
+      {
+        "data": {
+          "ObjForAllFn": {
             "field": "ok",
           },
         },
@@ -924,7 +946,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -932,11 +954,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAllFn": null,
+      {
+        "data": {
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
         ],
       }
@@ -956,7 +980,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -965,11 +989,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAllFn": null,
+      {
+        "data": {
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
         ],
       }
@@ -989,7 +1015,7 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -998,11 +1024,13 @@ describe('queries for type authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjForAllFn": null,
+      {
+        "data": {
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
         ],
       }
@@ -1022,16 +1050,18 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjEmptyAnyFn": null,
+      {
+        "data": {
+          "ObjEmptyAnyFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjEmptyAnyFn],
         ],
       }
@@ -1051,14 +1081,14 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjEmptyAllFn": Object {
+      {
+        "data": {
+          "ObjEmptyAllFn": {
             "field": "ok",
           },
         },
@@ -1079,14 +1109,14 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjBooleanFn": Object {
+      {
+        "data": {
+          "ObjBooleanFn": {
             "field": "ok",
           },
         },
@@ -1106,16 +1136,18 @@ describe('queries for type authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjBooleanFn": null,
+      {
+        "data": {
+          "ObjBooleanFn": {
+            "field": null,
+          },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjBooleanFn],
         ],
       }

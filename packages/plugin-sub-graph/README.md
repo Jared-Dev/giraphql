@@ -1,6 +1,6 @@
-# SubGraph Plugin for GiraphQL
+# SubGraph Plugin for Pothos
 
-A plugin for creating sub-selections of your graph. This Allows you to use the same code/types for
+A plugin for creating sub-selections of your graph. This allows you to use the same code/types for
 multiple variants of your API.
 
 One common use case for this is to share implementations between your public and internal APIs, by
@@ -11,26 +11,26 @@ only exposing a subset of your graph publicly.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-sub-graph
+yarn add @pothos/plugin-sub-graph
 ```
 
 ### Setup
 
 ```typescript
-import SubGraphPlugin from '@giraphql/plugin-sub-graph';
+import SubGraphPlugin from '@pothos/plugin-sub-graph';
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Internal';
 }>({
   plugins: [SubGraphPlugin],
   subGraphs: {
-    defaultsForTypes: [],
-    inheritFieldGraphsFromType: true,
+    defaultForTypes: [],
+    fieldsInheritFromTypes: true,
   },
 });
 
 //in another file:
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 
@@ -60,13 +60,8 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 
 - `subGraphs.defaultForTypes`: Specifies what sub-graph a type is part of by default.
 - `subGraphs.fieldsInheritFromTypes`: defaults to `false`. When true, fields on a type will default
-
   to being part of the same sub-graph as their parent type. Only applies when type does not have
-
   `defaultSubGraphsForFields` set.
-
-You can mock any field by adding a mock in the options passed to `builder.buildSchema` under
-`mocks.{typeName}.{fieldName}`.
 
 ### Usage
 
@@ -94,10 +89,34 @@ builder.queryType({
 When creating a sub-graph, the plugin will only copy in types that are included in the sub-graph,
 either by explicitly setting it on the type, or because the sub-graph is included in the default
 list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments
-and fields on Input types can not be removed because that would break assumptions about arguments
-types in resolves.
+and fields on Input types can not be removed because that would break assumptions about argument
+types in resolvers.
 
 If a type that is not included in the sub-graph is referenced by another part of the graph that is
 included in the graph, a runtime error will be thrown when the sub graph is constructed. This can
 happen in a number of cases including cases where a removed type is used in the interfaces of an
-object, a member of a union, or the type of an field argument.
+object, a member of a union, or the type of a field argument.
+
+### Explicitly including types
+
+You can use the `explicitlyIncludeType` option to explicitly include types in a sub-graph that are
+unreachable.  This isn't normally required, but there are some edge cases where this may be useful.
+
+For instance, when extending external references with the federation plugin, the externalRef may
+not be reachable directly through your schema, but you may still want to include it when building the
+schema.  To work around this, we can explicitly include any any types that have a `key` directive:
+
+
+```typescript
+import FederationPlugin, { hasResolvableKey } from '@pothos/plugin-federation';
+import SubGraphPlugin from '@pothos/plugin-sub-graph';
+
+const builder = new SchemaBuilder<{
+  SubGraphs: 'Public' | 'Internal';
+}>({
+  plugins: [SubGraphPlugin, FederationPlugin],
+  subGraphs: {
+    explicitlyIncludeType: (type, subGraphs) => hasResolvableKey(type)
+  },
+});
+```

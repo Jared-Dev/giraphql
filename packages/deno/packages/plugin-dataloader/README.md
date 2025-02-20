@@ -6,17 +6,17 @@ This plugin makes it easy to add fields and types that are loaded through a data
 
 ### Install
 
-To use the dataloader plugin you will need to install both the `dataloader` package and the giraphql
+To use the dataloader plugin you will need to install both the `dataloader` package and the Pothos
 dataloader plugin:
 
 ```bash
-yarn add dataloader @giraphql/plugin-dataloader
+yarn add dataloader @pothos/plugin-dataloader
 ```
 
 ### Setup
 
 ```typescript
-import DataloaderPlugin from '@giraphql/plugin-dataloader';
+import DataloaderPlugin from '@pothos/plugin-dataloader';
 
 const builder = new SchemaBuilder({
   plugins: [DataloaderPlugin],
@@ -28,7 +28,7 @@ const builder = new SchemaBuilder({
 To create an object type that can be loaded with a dataloader use the new `builder.loadableObject`
 method:
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   // load will be called with ids of users that need to be loaded
   // Note that the types for keys (and context if present) are required
@@ -53,7 +53,7 @@ works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-fun
 When defining fields that return `User`s, you will now be able to return either a `string` (based in
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
 
-```ts
+```typescript
 builder.queryType({
   fields: (t) => ({
     user: t.field({
@@ -81,16 +81,16 @@ builder.queryType({
 });
 ```
 
-GiraphQL will detect when a resolver returns `string`, `number`, or `bigint` (typescript will
+Pothos will detect when a resolver returns `string`, `number`, or `bigint` (typescript will
 constrain the allowed types to whatever is expected by the load function). If a resolver returns an
-object instead, GiraphQL knows it can skip the dataloader for that object.
+object instead, Pothos knows it can skip the dataloader for that object.
 
 ### loadable fields
 
 In some cases you may need more granular dataloaders. To handle these cases there is a new
 `t.loadable` method for defining fields with their own dataloaders.
 
-```ts
+```typescript
 // Normal object that the fields below will load
 interface PostShape {
   id: string;
@@ -126,11 +126,31 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### loadableList fields for one-to-many relations
+
+`loadable` fields can return lists, but do not work for loading a list of records from a single id.
+
+The `loadableList` method can be used to define loadable fields that represent this kind of
+relationship.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableList({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[][]`
+    load: (ids: number[], context) => context.postsByUserIds(ids),
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
 ### dataloader options
 
 You can provide additional options for your dataloaders using `loaderOptions`.
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   loaderOptions: { maxBatchSize: 20 },
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
@@ -155,7 +175,7 @@ Dataloaders for "loadable" objects can be accessed via their ref by passing in t
 for the current request. dataloaders are not shared across requests, so we need the context to get
 the correct dataloader for the current request:
 
-```ts
+```typescript
 // create loadable object
 const User = builder.loadableObject('User', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
@@ -182,15 +202,15 @@ builder.queryField('user', (t) =>
 
 Calling dataloader.loadMany will resolve to a value like `(Type | Error)[]`. Your `load` function
 may also return results in that format if your loader can have parital failures. GraphQL does not
-have special handling for Error objects. Instead GiraphQL will map these results to something like
+have special handling for Error objects. Instead Pothos will map these results to something like
 `(Type | Promise<Type>)[]` where Errors are replaced with promises that will be rejected. This
 allows the normal graphql resolver flow to correctly handle these errors.
 
 If you are using the `loadMany` method from a dataloader manually, you can apply the same mapping
 using the `rejectErrors` helper:
 
-```ts
-import { rejectErrors } from '@giraphql/plugin-dataloader';
+```typescript
+import { rejectErrors } from '@pothos/plugin-dataloader';
 
 builder.queryField('user', (t) =>
   t.field({
@@ -212,8 +232,8 @@ object. You can determine which of these options works best for you or add you o
 
 First you'll need to update the types for your context type:
 
-```ts
-import { LoadableRef } from '@giraphql/plugin-dataloader';
+```typescript
+import { LoadableRef } from '@pothos/plugin-dataloader';
 
 export interface ContextType {
   userLoader: DataLoader<string, { id: number }>; // expose a specific loader
@@ -227,9 +247,9 @@ export interface ContextType {
 next you'll need to update your context factory function. The exact format of this depends on what
 graphql server implementation you are using.
 
-```ts
-import { initContextCache } from '@giraphql/core';
-import { LoadableRef, rejectErrors } from '@giraphql/plugin-dataloader';
+```typescript
+import { initContextCache } from '@pothos/core';
+import { LoadableRef, rejectErrors } from '@pothos/plugin-dataloader';
 
 export const createContext = (req, res): ContextType => ({
   // Adding this will prevent any issues if you server implementation
@@ -255,7 +275,7 @@ export const createContext = (req, res): ContextType => ({
 
 Now you can use these helpers from your context object:
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   fromContext1: t.field({
     type: User,
@@ -281,17 +301,69 @@ builder.queryFields((t) => ({
 If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
 the builder. You can use this method to create `node` objects that work like other loadeble objects.
 
-```ts
+```typescript
 const UserNode = builder.loadableNode('UserNode', {
   id: {
     resolve: (user) => user.id,
   },
-  // For loadable objects we always need to include an isTypeOf check
-  isTypeOf: (obj) => obj instanceof User,
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   fields: (t) => ({}),
 });
 ```
+
+### Loadable Refs and Circular references
+
+You may run into type errors if you define 2 loadable objects that circularly reference each other
+in their definitions.
+
+There are a some general strategies to avoid this outlined in the
+[circular-references guide](../guide/circular-references).
+
+This plug also has methods for creating refs (similar to `builder.objectRef`) that can be used to
+split the definition and implementation of your types to avoid any issues with circular references.
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+User.implement({
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+
+// Or with relay
+const UserNode = builder.loadableNodeRef('UserNode', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  id: {
+    resolve: (user) => user.id,
+  },
+});
+
+UserNode.implement({
+  isTypeOf: (obj) => obj instanceof User,
+  fields: (t) => ({}),
+});
+```
+
+All the plugin specific options should be passed when defining the ref. This allows the ref to be
+used by any method that accepts a ref to implement an object:
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+builder.objectType(User, {
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+```
+
+The above example is not useful on its own, but this pattern will allow these refs to be used with
+other that also allow you to define object types with additional behaviors.
 
 ### Caching resources loaded manually in a resolver
 
@@ -301,7 +373,7 @@ the query you can use the `cacheResolved` option.
 
 The `cacheResolved` option takes a function that converts the loaded object into it's cache Key:
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   cacheResolved: user => user.id,

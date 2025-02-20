@@ -1,18 +1,24 @@
+import { printSchemaWithDirectives } from '@graphql-tools/utils';
+import SchemaBuilder from '@pothos/core';
 import {
+  type GraphQLEnumType,
+  type GraphQLInputObjectType,
+  type GraphQLObjectType,
+  Kind,
   execute,
-  GraphQLEnumType,
-  GraphQLInputObjectType,
-  GraphQLObjectType,
   lexicographicSortSchema,
   printSchema,
 } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder from '@giraphql/core';
 import schema from './example/schema';
 
 describe('extends example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
+    expect(printSchema(schema)).toMatchSnapshot();
+  });
+
+  it('generates expected schema with directives', () => {
+    expect(printSchemaWithDirectives(schema)).toMatchSnapshot();
   });
 
   it('has expected directives in extensions', () => {
@@ -42,6 +48,50 @@ describe('extends example schema', () => {
     ).toStrictEqual({ if: { foo: 123 } });
   });
 
+  it('constructs the astNode with defaultValue for inputs and args', () => {
+    const types = schema.getTypeMap();
+
+    const testField = (types.Query as GraphQLObjectType).getFields().test;
+
+    const arg1 = testField.args[0];
+    const myInput = testField.args[1];
+    const myOtherInput = testField.args[2];
+
+    expect(arg1.astNode?.defaultValue).toBeUndefined();
+    expect(myInput.astNode?.defaultValue).toBeUndefined();
+    expect(myOtherInput.astNode?.defaultValue).toBeDefined();
+    expect(myOtherInput.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.OBJECT,
+      fields: [],
+    });
+
+    const MyInput = (types.MyInput as GraphQLInputObjectType).getFields();
+
+    expect(MyInput.booleanWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.BOOLEAN,
+      value: false,
+    });
+    expect(MyInput.enumWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.ENUM,
+      value: 'TWO',
+    });
+    expect(MyInput.idWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.INT,
+      value: '123',
+    });
+    expect(MyInput.stringWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.STRING,
+      value: 'default string',
+    });
+    expect(MyInput.idsWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.LIST,
+      values: [
+        { kind: Kind.INT, value: '123' },
+        { kind: Kind.INT, value: '456' },
+      ],
+    });
+  });
+
   it('gatsby format', () => {
     const builder = new SchemaBuilder<{
       Directives: {
@@ -63,7 +113,7 @@ describe('extends example schema', () => {
       },
     });
 
-    const types = builder.toSchema({}).getTypeMap();
+    const types = builder.toSchema().getTypeMap();
 
     expect(types.Query.extensions?.directives).toStrictEqual([
       {
@@ -87,8 +137,8 @@ describe('extends example schema', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "test": "hi",
         },
       }
@@ -101,9 +151,11 @@ describe('extends example schema', () => {
     });
 
     expect(result2).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "test": null,
+        },
+        "errors": [
           [GraphQLError: Too many requests, please try again in 5 seconds.],
         ],
       }

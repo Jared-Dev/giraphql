@@ -1,9 +1,9 @@
-import { createTestServer } from '@giraphql/test-utils';
+import { createTestServer } from '@pothos/test-utils';
 import { prisma } from './builder';
 import schema from './schema';
 
 prisma.$on('query', (e) => {
-  console.log(`Query: ${e.query}`);
+  console.log(`Query: ${e.query}, ${e.params}`);
   console.log(`Duration: ${e.duration}ms`);
 });
 
@@ -13,7 +13,7 @@ prisma.$use((params, next) => {
   return next(params);
 });
 
-const server = createTestServer({ schema, contextFactory: () => ({ user: { id: 1 } }) });
+const server = createTestServer({ schema, context: () => ({ user: { id: 1 } }) });
 
 server.listen(3000, () => {
   console.log('🚀 Server started at http://127.0.0.1:3000');

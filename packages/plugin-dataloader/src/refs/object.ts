@@ -1,5 +1,7 @@
-import DataLoader from 'dataloader';
-import { ObjectRef, SchemaTypes } from '@giraphql/core';
+import { ImplementableObjectRef, ObjectRef, type SchemaTypes } from '@pothos/core';
+import type DataLoader from 'dataloader';
+import type { DataLoaderOptions } from '../types';
+import { dataloaderGetter } from '../util';
 
 export class LoadableObjectRef<
   Types extends SchemaTypes,
@@ -7,7 +9,7 @@ export class LoadableObjectRef<
   Shape,
   Key,
   CacheKey,
-> extends ObjectRef<RefShape, Shape> {
+> extends ObjectRef<Types, RefShape, Shape> {
   getDataloader;
 
   constructor(
@@ -17,5 +19,43 @@ export class LoadableObjectRef<
     super(name);
 
     this.getDataloader = getDataloader;
+  }
+}
+
+export class ImplementableLoadableObjectRef<
+  Types extends SchemaTypes,
+  RefShape,
+  Shape,
+  Key extends bigint | number | string,
+  CacheKey,
+> extends ImplementableObjectRef<Types, RefShape, Shape> {
+  getDataloader;
+
+  protected cacheResolved;
+
+  constructor(
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    name: string,
+    {
+      loaderOptions,
+      load,
+      toKey,
+      sort,
+      cacheResolved,
+    }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>,
+  ) {
+    super(builder, name);
+
+    this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+    this.cacheResolved =
+      typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
+
+    this.builder.configStore.onTypeConfig(this, (config) => {
+      config.extensions = {
+        ...config.extensions,
+        getDataloader: this.getDataloader,
+        cacheResolved: this.cacheResolved,
+      };
+    });
   }
 }

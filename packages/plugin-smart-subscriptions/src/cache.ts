@@ -1,7 +1,7 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { BuildCache, Path, SchemaTypes } from '@giraphql/core';
+import type { BuildCache, Path, SchemaTypes } from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
 import CacheNode from './cache-node';
-import SubscriptionManager from './manager';
+import type SubscriptionManager from './manager';
 
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
@@ -46,7 +46,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     const config = this.buildCache.getTypeConfig(type, 'Object');
 
     if (config.graphqlKind === 'Object') {
-      return config.giraphqlOptions.subscribe ?? null;
+      return config.pothosOptions.subscribe ?? null;
     }
 
     return null;
@@ -94,7 +94,11 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
       this,
       path,
       value,
-      canRefetch || !parent ? () => void this.invalidPaths.push(path) : parent.refetch,
+      canRefetch || !parent
+        ? () => {
+            this.invalidPaths.push(path);
+          }
+        : parent.refetch,
     );
 
     this.nextCache.set(path, node);
@@ -114,7 +118,6 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
 
     while (prev) {
       key = `${prev.key}.${key}`;
-      // eslint-disable-next-line prefer-destructuring
       prev = prev.prev;
     }
 

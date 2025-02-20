@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-shadow */
-/* eslint-disable @typescript-eslint/require-await */
 import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
 builder.queryField('pollIds', (t) =>
   t.globalIDList({
-    resolve: (parent, args, context) =>
+    resolve: (_parent, _args, context) =>
       [...context.Poll.map.keys()].map((key) => ({ id: key, type: 'Poll' as const })),
   }),
 );
@@ -27,26 +25,26 @@ builder.node('Poll', {
       type: 'Answer',
       // args automatically gets default cursor pagination args, but you can add more args like any other field
       resolve: async (parent, args) => ({
-        totalCount: parent.answers.length,
         // This would be for simple cases where you already have all the data
-        ...(await resolveArrayConnection({ args }, parent.answers))!,
+        ...(await resolveArrayConnection({ args }, parent.answers)),
       }),
     }),
     answersUsingOffset: t.connection({
       type: 'Answer',
       resolve: async (parent, args) => ({
-        totalCount: parent.answers.length,
         // This would be the API for limit/offset based APIs
-        ...(await resolveOffsetConnection({ args }, ({ limit, offset }) =>
-          // replace with call to limit/offset based service
-          parent.answers.slice(offset, offset + limit),
-        ))!,
+        ...(await resolveOffsetConnection(
+          { args, totalCount: parent.answers.length },
+          ({ limit, offset }) =>
+            // replace with call to limit/offset based service
+            parent.answers.slice(offset, offset + limit),
+        )),
       }),
     }),
     answersWithoutHelpers: t.connection(
       {
         type: 'Answer',
-        resolve: (parent, args) =>
+        resolve: (parent, _args) =>
           // If you don't have a helper, this is the shape you are expected to return
           ({
             totalCount: parent.answers.length,
@@ -95,7 +93,7 @@ builder.queryField('pollsConnection', (t) =>
   t.connection(
     {
       type: 'Poll',
-      resolve: async (root, args, { Poll: PollList }) => ({
+      resolve: async (_root, _args, { Poll: PollList }) => ({
         totalCount: PollList.map.size,
         pageInfo: {
           hasNextPage: false,
@@ -131,7 +129,7 @@ builder.queryField('pollsConnection', (t) =>
 builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
-    resolve: (root, args, { Poll }, info) => [...Poll.map.values()],
+    resolve: (_root, _args, { Poll }, _info) => [...Poll.map.values()],
   }),
   poll: t.field({
     type: 'Poll',
@@ -139,7 +137,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll }, info) => Poll.map.get(args.id),
+    resolve: (_root, args, { Poll }, _info) => Poll.map.get(args.id),
   }),
 }));
 
@@ -150,7 +148,7 @@ builder.mutationFields((t) => ({
       question: t.arg.string({ required: true }),
       answers: t.arg.stringList({ required: true }),
     },
-    resolve: (root, args, { Poll, pubsub }) => {
+    resolve: (_root, args, { Poll }) => {
       const poll = Poll.create(args.question, args.answers);
 
       return poll;
@@ -162,7 +160,7 @@ builder.mutationFields((t) => ({
       id: t.arg.id({ required: true }),
       answer: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll, pubsub }, info) => {
+    resolve: (_root, args, { Poll }, _info) => {
       const poll = Poll.map.get(Number(args.id));
 
       if (!poll) {

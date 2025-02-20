@@ -1,12 +1,13 @@
-import { Path, SchemaTypes } from '@giraphql/core';
-import { AuthScopeMap } from '.';
+import type { Path, PothosFieldConfig, SchemaTypes } from '@pothos/core';
+
+import type { AuthScopeMap } from '.';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {
   if (map.$granted) {
     return false;
   }
 
-  return (map.$all ? canCache(map.$all!) : true) && (map.$any ? canCache(map.$any!) : true);
+  return (map.$all ? canCache(map.$all) : true) && (map.$any ? canCache(map.$any) : true);
 }
 
 export function cacheKey(path: Path | undefined) {
@@ -24,4 +25,13 @@ export function cacheKey(path: Path | undefined) {
   }
 
   return key;
+}
+
+export function isObjectOrInterface(fieldConfig: PothosFieldConfig<never>) {
+  return (
+    (fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
+    fieldConfig.kind !== 'Query' &&
+    fieldConfig.kind !== 'Mutation' &&
+    fieldConfig.kind !== 'Subscription'
+  );
 }

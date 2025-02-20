@@ -1,5 +1,5 @@
 import builder from '../builder';
-import { ContextType } from '../types';
+import type { ContextType } from '../types';
 import { animalCounts, countCall } from './counts';
 
 export const TestInterface = builder.interfaceRef<{ id: number }>('TestInterface').implement({
@@ -37,7 +37,7 @@ const Animal = builder.loadableInterface('Animal', {
 
 export const DogObject = builder.objectRef<Dog>('Dog').implement({
   interfaces: [Animal],
-  isTypeOf: (animal) => animal.type === 'Dog',
+  isTypeOf: (animal) => (animal as { type: string }).type === 'Dog',
   fields: (t) => ({
     chasingTail: t.exposeBoolean('chasingTail'),
   }),
@@ -45,7 +45,7 @@ export const DogObject = builder.objectRef<Dog>('Dog').implement({
 
 export const CatObject = builder.objectRef<Cat>('Cat').implement({
   interfaces: [Animal],
-  isTypeOf: (animal) => animal.type === 'Cat',
+  isTypeOf: (animal) => (animal as { type: string }).type === 'Cat',
   fields: (t) => ({
     chasingMouse: t.exposeBoolean('chasingMouse'),
   }),
@@ -59,6 +59,6 @@ builder.queryField('animals', (t) =>
         required: true,
       }),
     },
-    resolve: (root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
+    resolve: (_root, args) => args.ids.map((id) => Number.parseInt(String(id), 10)),
   }),
 );

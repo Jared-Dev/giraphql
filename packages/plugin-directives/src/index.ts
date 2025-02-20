@@ -1,27 +1,26 @@
-/* eslint-disable no-param-reassign */
 import './global-types';
-import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLEnumValueConfig,
-  GiraphQLInputFieldConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
-  SchemaTypes,
-} from '@giraphql/core';
+  type PothosEnumValueConfig,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  type PothosTypeConfig,
+  type SchemaTypes,
+} from '@pothos/core';
+import type { GraphQLSchema } from 'graphql';
 import mockAst from './mock-ast';
-import { DirectiveList } from './types';
+import type { DirectiveList } from './types';
 
 export * from './types';
 
-const pluginName = 'directives' as const;
+const pluginName = 'directives';
 
 export default pluginName;
-export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    const options = fieldConfig.giraphqlOptions;
+export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const options = fieldConfig.pothosOptions;
 
-    if (!options.directives) {
+    if (!options.directives && !fieldConfig.extensions?.directives) {
       return fieldConfig;
     }
 
@@ -29,15 +28,20 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...fieldConfig,
       extensions: {
         ...fieldConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            fieldConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
+          ),
+        ),
       },
     };
   }
 
-  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    const options = fieldConfig.giraphqlOptions;
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+    const options = fieldConfig.pothosOptions;
 
-    if (!options.directives) {
+    if (!options.directives && !fieldConfig.extensions?.directives) {
       return fieldConfig;
     }
 
@@ -45,15 +49,20 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...fieldConfig,
       extensions: {
         ...fieldConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            fieldConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
+          ),
+        ),
       },
     };
   }
 
-  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    const options = valueConfig.giraphqlOptions;
+  override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
+    const options = valueConfig.pothosOptions;
 
-    if (!options.directives) {
+    if (!options.directives && !valueConfig.extensions?.directives) {
       return valueConfig;
     }
 
@@ -61,15 +70,20 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...valueConfig,
       extensions: {
         ...valueConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            valueConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
+          ),
+        ),
       },
     };
   }
 
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    const options = typeConfig.giraphqlOptions;
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
+    const options = typeConfig.pothosOptions;
 
-    if (!options.directives) {
+    if (!options.directives && !typeConfig.extensions?.directives) {
       return typeConfig;
     }
 
@@ -77,24 +91,56 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            typeConfig.extensions?.directives as Record<string, object>,
+            options.directives as unknown as Record<string, object>,
+          ),
+        ),
       },
     };
   }
 
   override afterBuild(schema: GraphQLSchema) {
+    schema.extensions = {
+      ...schema.extensions,
+      directives: this.normalizeDirectives(
+        this.mergeDirectives(
+          (schema.extensions?.directives as Record<string, object>) ?? {},
+          this.options.schemaDirectives as unknown as Record<string, object>,
+        ),
+      ),
+    };
+
     mockAst(schema);
 
     return schema;
   }
 
-  normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
-    if (this.builder.options.useGraphQLToolsUnorderedDirectives) {
+  mergeDirectives(
+    left: DirectiveList | Record<string, object>,
+    right: DirectiveList | Record<string, object>,
+  ) {
+    if (!(left && right)) {
+      return left || right;
+    }
+
+    return [
+      ...(Array.isArray(left)
+        ? left
+        : Object.keys(left).map((name) => ({ name, args: left[name] }))),
+      ...(Array.isArray(right)
+        ? right
+        : Object.keys(right).map((name) => ({ name, args: right[name] }))),
+    ];
+  }
+
+  normalizeDirectives(directives: DirectiveList | Record<string, object>) {
+    if (this.builder.options.directives?.useGraphQLToolsUnorderedDirectives) {
       if (!Array.isArray(directives)) {
         return directives;
       }
 
-      // eslint-disable-next-line unicorn/prefer-object-from-entries
       return directives.reduce<Record<string, {}[]>>((obj, directive) => {
         if (obj[directive.name]) {
           obj[directive.name].push(directive.args ?? {});
@@ -114,4 +160,11 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLDirectivesPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDirectivesPlugin, {
+  v3: (options) => ({
+    useGraphQLToolsUnorderedDirectives: undefined,
+    directives: {
+      useGraphQLToolsUnorderedDirectives: options.useGraphQLToolsUnorderedDirectives,
+    },
+  }),
+});

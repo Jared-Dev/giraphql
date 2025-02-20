@@ -19,17 +19,25 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
-const UserType = builder.simpleObject('User', {
-  interfaces: [Node],
-  fields: (t) => ({
-    firstName: t.string(),
-    lastName: t.string(),
-    contactInfo: t.field({
-      type: ContactInfo,
-      nullable: false,
+const UserType = builder.simpleObject(
+  'User',
+  {
+    interfaces: [Node],
+    fields: (t) => ({
+      firstName: t.string(),
+      lastName: t.string(),
+      contactInfo: t.field({
+        type: ContactInfo,
+        nullable: false,
+      }),
+    }),
+  },
+  (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
   }),
-});
+);
 
 builder.queryType({
   fields: (t) => ({
@@ -38,7 +46,7 @@ builder.queryType({
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (parent, args, { User }) => {
+      resolve: (_parent, args, { User }) => {
         const user = User.map.get(Number.parseInt(args.id, 10));
 
         if (!user) {
@@ -56,4 +64,4 @@ builder.queryType({
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();

@@ -1,0 +1,308 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`cursor based connection > queries 1`] = `
+{
+  "data": {
+    "after": {
+      "edges": [
+        {
+          "node": {
+            "id": "99",
+          },
+        },
+        {
+          "node": {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "afterFirst": {
+      "edges": [
+        {
+          "node": {
+            "id": "96",
+          },
+        },
+        {
+          "node": {
+            "id": "97",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "97",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "96",
+      },
+    },
+    "afterFull": {
+      "edges": [
+        {
+          "node": {
+            "id": "41",
+          },
+        },
+        {
+          "node": {
+            "id": "42",
+          },
+        },
+        {
+          "node": {
+            "id": "43",
+          },
+        },
+        {
+          "node": {
+            "id": "44",
+          },
+        },
+        {
+          "node": {
+            "id": "45",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "45",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "41",
+      },
+    },
+    "afterFullFirst": {
+      "edges": [
+        {
+          "node": {
+            "id": "41",
+          },
+        },
+        {
+          "node": {
+            "id": "42",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "42",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "41",
+      },
+    },
+    "afterLast": {
+      "edges": [
+        {
+          "node": {
+            "id": "99",
+          },
+        },
+        {
+          "node": {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "afterLastFull": {
+      "edges": [
+        {
+          "node": {
+            "id": "99",
+          },
+        },
+        {
+          "node": {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "before": {
+      "edges": [
+        {
+          "node": {
+            "id": "1",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "1",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeFirst": {
+      "edges": [
+        {
+          "node": {
+            "id": "1",
+          },
+        },
+        {
+          "node": {
+            "id": "2",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "2",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeFull": {
+      "edges": [
+        {
+          "node": {
+            "id": "35",
+          },
+        },
+        {
+          "node": {
+            "id": "36",
+          },
+        },
+        {
+          "node": {
+            "id": "37",
+          },
+        },
+        {
+          "node": {
+            "id": "38",
+          },
+        },
+        {
+          "node": {
+            "id": "39",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "39",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "35",
+      },
+    },
+    "beforeFullFirst": {
+      "edges": [
+        {
+          "node": {
+            "id": "1",
+          },
+        },
+        {
+          "node": {
+            "id": "2",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "2",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeLast": {
+      "edges": [
+        {
+          "node": {
+            "id": "3",
+          },
+        },
+        {
+          "node": {
+            "id": "4",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "4",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "3",
+      },
+    },
+    "beforeLastFull": {
+      "edges": [
+        {
+          "node": {
+            "id": "38",
+          },
+        },
+        {
+          "node": {
+            "id": "39",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "39",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "38",
+      },
+    },
+    "noArgs": {
+      "edges": [
+        {
+          "node": {
+            "id": "1",
+          },
+        },
+        {
+          "node": {
+            "id": "2",
+          },
+        },
+        {
+          "node": {
+            "id": "3",
+          },
+        },
+        {
+          "node": {
+            "id": "4",
+          },
+        },
+        {
+          "node": {
+            "id": "5",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "5",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+  },
+}
+`;

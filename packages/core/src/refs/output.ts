@@ -1,11 +1,14 @@
-import { outputShapeKey, parentShapeKey } from '../types';
-import BaseTypeRef from './base';
+import { type SchemaTypes, outputShapeKey, parentShapeKey } from '../types';
+import { BaseTypeRef } from './base';
 
-export default class OutputTypeRef<T, P = T> extends BaseTypeRef {
+export class OutputTypeRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef<Types> {
   override kind;
 
-  [outputShapeKey]: T;
-  [parentShapeKey]: P;
+  $inferType!: T;
+
+  [outputShapeKey]!: T;
+
+  [parentShapeKey]!: P;
 
   constructor(kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union', name: string) {
     super(kind, name);

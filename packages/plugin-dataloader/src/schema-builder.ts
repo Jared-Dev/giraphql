@@ -1,105 +1,111 @@
-import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
-  FieldRef,
-  InterfaceParam,
-  InterfaceRef,
-  ObjectParam,
-  SchemaTypes,
-  ShapeFromTypeParam,
-} from '@giraphql/core';
-import { LoadableInterfaceRef } from './refs/interface';
-import { LoadableObjectRef } from './refs/object';
+  type InterfaceParam,
+  type ObjectParam,
+  type OutputRef,
+  PothosSchemaError,
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+} from '@pothos/core';
+import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
+import { ImplementableLoadableInterfaceRef } from './refs/interface';
+import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
-import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
-import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
+import type {
+  DataloaderKey,
+  LoadableInterfaceOptions,
+  LoadableUnionOptions,
+  ShapeFromLoadResult,
+} from './types';
+import type { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
+import { dataloaderGetter } from './util';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+
+schemaBuilderProto.loadableObjectRef = function loadableObjectRef(name, options) {
+  return new ImplementableLoadableObjectRef(this, name, options);
+};
+
+schemaBuilderProto.loadableInterfaceRef = function loadableInterfaceRef(name, options) {
+  return new ImplementableLoadableInterfaceRef(this, name, options);
+};
+
+schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
+  return new ImplementableLoadableNodeRef(this, name, options);
+};
 
 schemaBuilderProto.loadableObject = function loadableObject<
-  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
+  LoadResult,
   Key extends DataloaderKey,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: DataloaderObjectTypeOptions<
+    SchemaTypes,
+    LoadResult,
+    Key,
+    Interfaces,
+    NameOrRef,
+    CacheKey,
+    Shape
+  >,
 ) {
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+  const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(
+    this,
+    name,
+    options as never,
+  );
 
-  const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
-
-  this.objectType(ref, {
-    ...options,
-    extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
-    },
-  } as never);
+  ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
 
   return ref;
 };
 
 schemaBuilderProto.loadableInterface = function loadableInterface<
-  Shape extends NameOrRef extends InterfaceParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
+  LoadResult,
   Key extends DataloaderKey,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends InterfaceParam<SchemaTypes> | string,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: LoadableInterfaceOptions<
+    SchemaTypes,
+    LoadResult,
+    Key,
+    Interfaces,
+    NameOrRef,
+    CacheKey,
+    Shape
+  >,
 ) {
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
-
-  const ref = new LoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
+  const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
+    this,
     name,
-    getDataloader,
+    options as never,
   );
 
-  this.interfaceType(ref, {
-    ...options,
-    extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
-    },
-  });
+  ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
 
   return ref;
@@ -125,7 +131,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
 
   const ref = new LoadableUnionRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
 
-  this.unionType(name, {
+  const unionRef = this.unionType(name, {
     ...options,
     extensions: {
       getDataloader,
@@ -133,7 +139,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
     },
   });
 
-  this.configStore.associateRefWithName(ref, name);
+  this.configStore.associateParamWithRef(ref, unionRef);
 
   return ref;
 };
@@ -141,86 +147,94 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
 const TloadableNode = schemaBuilderProto.loadableNode;
 
 schemaBuilderProto.loadableNode = function loadableNode<
-  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
-  Key extends DataloaderKey,
+  LoadResult extends NameOrRef extends ObjectParam<SchemaTypes>
+    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> | Error
+    : unknown,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
+  IDShape extends bigint | number | string = string,
+  Key extends bigint | number | string = IDShape,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
-  this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: LoadableNodeOptions<
+    SchemaTypes,
+    LoadResult,
+    Interfaces,
+    NameOrRef,
+    IDShape,
+    Key,
+    CacheKey,
+    Shape
+  >,
 ) {
   if (
-    typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
+    typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
       .nodeInterfaceRef !== 'function'
   ) {
-    throw new TypeError('builder.loadableNode requires @giraphql/plugin-relay to be installed');
+    throw new PothosSchemaError(
+      'builder.loadableNode requires @pothos/plugin-relay to be installed',
+    );
   }
 
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
-      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+      : ((options as { name?: string }).name ?? (nameOrRef as { name: string }).name);
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+  const ref = new LoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(
+    this,
+    name,
+    options as never,
+  );
 
-  const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
-
-  const extendedOptions = {
+  (this as typeof this & { node: (ref: unknown, options: unknown) => void }).node(ref, {
     ...options,
-    interfaces: [
-      (
-        this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
-          nodeInterfaceRef: () => InterfaceRef<unknown>;
-        }
-      ).nodeInterfaceRef(),
-      ...(options.interfaces ?? []),
-    ],
-    loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
     extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
+      ...options.extensions,
+      pothosParseGlobalID: options.id.parse,
+      getDataloader: ref.getDataloader,
+      cacheResolved:
+        typeof options.cacheResolved === 'function'
+          ? options.cacheResolved
+          : options.cacheResolved && options.toKey,
     },
-  };
+    loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
+      ref.getDataloader(context).loadMany(ids),
+    isTypeOf:
+      options.isTypeOf ??
+      (typeof nameOrRef === 'function'
+        ? (maybeNode: unknown) => {
+            if (!maybeNode) {
+              return false;
+            }
 
-  this.objectType(ref, extendedOptions as never);
+            if (maybeNode instanceof (nameOrRef as Function)) {
+              return true;
+            }
+
+            const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
+
+            try {
+              if (proto?.constructor) {
+                const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
+
+                return config.name === name;
+              }
+            } catch {
+              // ignore
+            }
+
+            return false;
+          }
+        : undefined),
+  });
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
-
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    this.objectField(ref, 'id', (t) =>
-      (
-        t as unknown as {
-          globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-        }
-      ).globalID({
-        ...options.id,
-        nullable: false,
-        args: {},
-        resolve: async (
-          parent: Shape,
-          args: object,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => ({
-          type: nodeConfig.name,
-          id: await options.id.resolve(parent, args, context, info),
-        }),
-      }),
-    );
-  });
 
   return ref;
 } as unknown as typeof TloadableNode;

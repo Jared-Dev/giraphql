@@ -1,5 +1,6 @@
 import './poll';
 import './numbers';
+import './cursors';
 import builder from '../builder';
 
 interface GlobalIDInputsShape {
@@ -8,10 +9,14 @@ interface GlobalIDInputsShape {
     id: string;
     typename: string;
   };
-  idList: {
-    id: string;
-    typename: string;
-  }[];
+  idList: (
+    | {
+        id: string;
+        typename: string;
+      }
+    | null
+    | undefined
+  )[];
 }
 
 interface CircularWithoutGlobalIds {
@@ -21,6 +26,12 @@ interface CircularWithoutGlobalIds {
 
 const GlobalIDInput = builder.inputRef<GlobalIDInputsShape>('GlobalIDInput');
 const NoGlobalIDInput = builder.inputRef<CircularWithoutGlobalIds>('NoGlobalIDInput');
+
+const OtherInput = builder.inputType('OtherInput', {
+  fields: (t) => ({
+    someField: t.string(),
+  }),
+});
 
 GlobalIDInput.implement({
   fields: (t) => ({
@@ -33,10 +44,14 @@ GlobalIDInput.implement({
     id: t.globalID({
       required: true,
     }),
+    otherList: t.field({
+      type: [OtherInput],
+      defaultValue: [{ someField: 'abc' }],
+    }),
     idList: t.globalIDList({
       required: {
         list: true,
-        items: true,
+        items: false,
       },
     }),
   }),
@@ -63,39 +78,21 @@ builder.queryType({
           type: GlobalIDInput,
           required: true,
         }),
+        idList: t.arg.globalIDList({
+          required: {
+            list: true,
+            items: false,
+          },
+        }),
       },
-      resolve(parent, args) {
-        return JSON.stringify({
-          normal: args.normalId,
-          inputObj: {
-            circular: {
-              id: {
-                id: args.inputObj.circular?.id.id,
-                typename: args.inputObj.circular?.id.typename,
-              },
-              idList: args.inputObj.circular?.idList,
-              circular: args.inputObj.circular?.circular,
-            },
-            id: {
-              id: args.inputObj.id.id,
-              typename: args.inputObj.id.typename,
-            },
-            idList: args.inputObj.idList?.map((id) => ({
-              id: id.id,
-              typename: id.typename,
-            })),
-          },
-          id: {
-            id: args.id.id,
-            typename: args.id.typename,
-          },
-        });
+      resolve(_parent, args) {
+        return JSON.stringify(args);
       },
     }),
   }),
 });
 
-builder.mutationType({ fields: (t) => ({}) });
+builder.mutationType({ fields: (_t) => ({}) });
 
 const { inputType: ExampleMutationInput, payloadType: ExampleMutationPayload } =
   builder.relayMutationField(
@@ -108,7 +105,7 @@ const { inputType: ExampleMutationInput, payloadType: ExampleMutationPayload } =
       }),
     },
     {
-      resolve: async (root, args) => {
+      resolve: (_root, args) => {
         if (!args.input.clientMutationId) {
           throw new Error('clientMutationId is missing');
         }
@@ -125,6 +122,24 @@ const { inputType: ExampleMutationInput, payloadType: ExampleMutationPayload } =
     },
   );
 
+builder.relayMutationField(
+  'noInput',
+  null,
+  {
+    args: builder.args((t) => ({
+      status: t.int(),
+    })),
+    resolve: async (_, args) => Promise.resolve({ status: args.status ?? 200 }),
+  },
+  {
+    outputFields: (t) => ({
+      itWorked: t.boolean({
+        resolve: (parent) => parent.status === 200,
+      }),
+    }),
+  },
+);
+
 builder.mutationField('exampleMutationReUse', (t) =>
   t.field({
     type: ExampleMutationPayload,
@@ -134,7 +149,7 @@ builder.mutationField('exampleMutationReUse', (t) =>
         type: ExampleMutationInput,
       }),
     },
-    resolve: (root, args) => {
+    resolve: (_root, args) => {
       if (!args.input.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
@@ -158,7 +173,7 @@ builder.relayMutationField(
   },
   {
     description: 'mutation field',
-    resolve: async (root, args) => {
+    resolve: (_root, args) => {
       if (!args.customInput.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
@@ -177,4 +192,4 @@ builder.relayMutationField(
   },
 );
 
-export default builder.toSchema({});
+export default builder.toSchema();

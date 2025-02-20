@@ -15,7 +15,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -23,8 +23,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdmin": "ok",
         },
       }
@@ -49,11 +49,39 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAdmin": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdmin],
         ],
+      }
+    `);
+  });
+
+  it('simple field scope (custom unauthorized)', async () => {
+    const query = gql`
+      query {
+        forAdminUnauthorizedResolve
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "forAdminUnauthorizedResolve": [],
+        },
       }
     `);
   });
@@ -69,7 +97,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -77,8 +105,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermission": "ok",
         },
       }
@@ -103,9 +131,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forSyncPermission": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forSyncPermission],
         ],
       }
@@ -123,7 +153,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -131,8 +161,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermission": "ok",
         },
       }
@@ -157,10 +187,68 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAsyncPermission": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermission],
+        ],
+      }
+    `);
+  });
+
+  it('field scope with bound loader', async () => {
+    const query = gql`
+      query {
+        forBoundPermission
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+          'x-roles': 'admin',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "forBoundPermission": "ok",
+        },
+      }
+    `);
+  });
+
+  it('field scope with bound loader (unauthorized)', async () => {
+    const query = gql`
+      query {
+        forBoundPermission
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "forBoundPermission": null,
+        },
+        "errors": [
+          [GraphQLError: Not authorized to resolve Query.forBoundPermission],
         ],
       }
     `);
@@ -177,7 +265,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -185,8 +273,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -204,7 +292,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -212,8 +300,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -231,7 +319,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -239,8 +327,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -265,9 +353,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAny": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAny],
         ],
       }
@@ -285,7 +375,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -294,8 +384,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAll": "ok",
         },
       }
@@ -313,7 +403,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -321,9 +411,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAll": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -341,7 +433,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -350,9 +442,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAll": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -370,7 +464,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -379,9 +473,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAll": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -399,14 +495,16 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "emptyAny": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAny],
         ],
       }
@@ -424,13 +522,13 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "emptyAll": "ok",
         },
       }
@@ -448,7 +546,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -456,8 +554,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdminFn": "ok",
         },
       }
@@ -482,9 +580,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAdminFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminFn],
         ],
       }
@@ -502,7 +602,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -510,8 +610,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdminAsyncFn": "ok",
         },
       }
@@ -536,9 +636,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAdminAsyncFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminAsyncFn],
         ],
       }
@@ -556,7 +658,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -564,8 +666,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermissionFn": "ok",
         },
       }
@@ -591,11 +693,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermissionFn": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
         ],
       }
@@ -613,7 +715,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -621,8 +723,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermissionFn": "ok",
         },
       }
@@ -648,11 +750,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermissionFn": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
         ],
       }
@@ -670,7 +772,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -678,8 +780,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -697,7 +799,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -705,8 +807,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -724,7 +826,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -732,8 +834,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -758,9 +860,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAnyFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAnyFn],
         ],
       }
@@ -778,7 +882,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -787,8 +891,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAllFn": "ok",
         },
       }
@@ -806,7 +910,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -814,9 +918,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAllFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -834,7 +940,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -843,9 +949,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAllFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -863,7 +971,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -872,9 +980,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forAllFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -892,14 +1002,16 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "emptyAnyFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAnyFn],
         ],
       }
@@ -917,13 +1029,13 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "emptyAllFn": "ok",
         },
       }
@@ -941,13 +1053,13 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forBooleanFn": "ok",
         },
       }
@@ -965,14 +1077,16 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
+      {
+        "data": {
+          "forBooleanFn": null,
+        },
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forBooleanFn],
         ],
       }

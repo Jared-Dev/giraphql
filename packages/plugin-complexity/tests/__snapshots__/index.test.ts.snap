@@ -1,98 +1,166 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`simple objects example schema generates expected schema 1`] = `
+exports[`createComplexityRule > negative limits 1`] = `
+[
+  [GraphQLError: Query complexity of 2 exceeds max complexity of -1],
+  [GraphQLError: Query depth of 2 exceeds max depth of -1],
+  [GraphQLError: Query breadth of 2 exceeds max breadth of -1],
+]
+`;
+
+exports[`createComplexityRule > zero limits 1`] = `
+[
+  [GraphQLError: Query complexity of 2 exceeds max complexity of 0],
+  [GraphQLError: Query depth of 2 exceeds max depth of 0],
+  [GraphQLError: Query breadth of 2 exceeds max breadth of 0],
+]
+`;
+
+exports[`simple objects example schema > complexity from query > as string 1`] = `
+{
+  "breadth": 7,
+  "complexity": 66,
+  "depth": 5,
+}
+`;
+
+exports[`simple objects example schema > generates expected schema 1`] = `
 "interface Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn: [Episode!]!
+  """Which movies they appear in."""
+  appearsIn: [Episode!]
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
-  id: ID!
+  """The friends of the character, or an empty list if they have none."""
+  friendsUnion(limit: Int): [Friend]!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
-  name: String!
+  """The id of the character"""
+  id: ID
+
+  """The name of the character"""
+  name: String
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn: [Episode!]!
+  """Which movies they appear in."""
+  appearsIn: [Episode!]
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
-  id: ID!
+  """The friends of the character, or an empty list if they have none."""
+  friendsUnion(limit: Int): [Friend]!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
-  name: String!
+  """The id of the character"""
+  id: ID
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
-  primaryFunction: String!
+  """The name of the character"""
+  name: String
+
+  """The primary function of the droid."""
+  primaryFunction: String
 }
 
-\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+"""One of the films in the Star Wars Trilogy"""
 enum Episode {
-  \\"\\"\\"Released in 1980.\\"\\"\\"
+  """Released in 1980."""
   EMPIRE
 
-  \\"\\"\\"Released in 1983\\"\\"\\"
+  """Released in 1983"""
   JEDI
 
-  \\"\\"\\"Released in 1977.\\"\\"\\"
+  """Released in 1977."""
   NEWHOPE
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
-type Human implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn: [Episode!]!
+union Friend = Droid | Human
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
+type Human implements Character {
+  """Which movies they appear in."""
+  appearsIn: [Episode!]
+
+  """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
+  friendsUnion(limit: Int): [Friend]!
+
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The id of the character\\"\\"\\"
-  id: ID!
+  """The id of the character"""
+  id: ID
 
-  \\"\\"\\"The name of the character\\"\\"\\"
-  name: String!
+  """The name of the character"""
+  name: String
 }
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Droid!
+  ): Droid
   hero(
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
+    """
     episode: Episode!
-  ): Character!
+  ): Character
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Human!
-  r2d2: Droid!
+  ): Human
+  r2d2: Droid
 }"
 `;
 
-exports[`simple objects example schema queries complexity based on args 1`] = `
-Object {
-  "data": Object {
-    "hero": Object {
-      "friends": Array [
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
-                  "appearsIn": Array [
+exports[`simple objects example schema > negative limits > negative breadth 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: -1)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > negative limits > negative complexity 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: -1)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > negative limits > negative depth 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum depth (depth: 2, max: -1)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > queries > complexity based on args 1`] = `
+{
+  "data": {
+    "hero": {
+      "friends": [
+        {
+          "friends": [
+            {
+              "friends": [
+                {
+                  "appearsIn": [
                     "NEWHOPE",
                     "EMPIRE",
                     "JEDI",
@@ -110,90 +178,99 @@ Object {
 }
 `;
 
-exports[`simple objects example schema queries complexity based options 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
+exports[`simple objects example schema > queries > complexity based options 1`] = `
+{
+  "data": {
+    "human": null,
+  },
+  "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 501, max: 200)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too complex 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
+exports[`simple objects example schema > queries > too complex 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 287, max: 200)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too deep 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
+exports[`simple objects example schema > queries > too deep 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
     [GraphQLError: Query exceeds maximum depth (depth: 6, max: 5)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too wide 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
+exports[`simple objects example schema > queries > too wide 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
     [GraphQLError: Query exceeds maximum breadth (breadth: 13, max: 10)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries valid query 1`] = `
-Object {
-  "data": Object {
-    "hero": Object {
-      "friends": Array [
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+exports[`simple objects example schema > queries > valid query 1`] = `
+{
+  "data": {
+    "hero": {
+      "friends": [
+        {
+          "__typename": "Human",
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -201,62 +278,63 @@ Object {
           ],
           "name": "Han Solo",
         },
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+        {
+          "__typename": "Human",
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -264,62 +342,63 @@ Object {
           ],
           "name": "Leia Organa",
         },
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+        {
+          "__typename": "Droid",
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -327,49 +406,50 @@ Object {
           ],
           "name": "C-3PO",
         },
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+        {
+          "__typename": "Droid",
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
@@ -378,7 +458,54 @@ Object {
           "name": "R2-D2",
         },
       ],
+      "friendsUnion": [
+        {
+          "__typename": "Human",
+        },
+        {
+          "__typename": "Human",
+        },
+        {
+          "__typename": "Droid",
+        },
+        {
+          "__typename": "Droid",
+        },
+      ],
     },
   },
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero breadth 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: 0)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero complexity 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: 0)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero depth 1`] = `
+{
+  "data": {
+    "hero": null,
+  },
+  "errors": [
+    [GraphQLError: Query exceeds maximum depth (depth: 2, max: 0)],
+  ],
 }
 `;

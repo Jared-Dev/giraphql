@@ -3,6 +3,7 @@ import SchemaBuilder from '../../src';
 
 // Define backing models/types
 interface Types {
+  Defaults: 'v4';
   Objects: {
     User: { firstName: string; lastName: string; funFact?: string | null };
     Article: { title: string; body: string };
@@ -13,7 +14,9 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: String };
+    Date: { Input: Date | string; Output: Date | string };
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    AnyJson: { Input: any | string; Output: unknown };
   };
   Context: { userID: number };
 }
@@ -23,7 +26,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  override species: 'Giraffe' = 'Giraffe';
+  override species = 'Giraffe' as const;
 
   name: string;
 
@@ -37,10 +40,17 @@ class Giraffe extends Animal {
   }
 }
 
-const builder = new SchemaBuilder<Types>({});
+const builder = new SchemaBuilder<Types>({
+  defaults: 'v4',
+});
+
+builder.scalarType('AnyJson', {
+  serialize: (json) => json,
+  parseValue: (value) => value,
+});
 
 builder.scalarType('Date', {
-  serialize: (date) => new Date(date as Date).toISOString(),
+  serialize: (date) => new Date(date).toISOString(),
 });
 
 builder.interfaceType(Animal, {
@@ -54,14 +64,14 @@ builder.objectType(Giraffe, {
   name: 'Giraffe',
   interfaces: [Animal],
   isTypeOf(parent) {
-    return parent.species === 'Giraffe';
+    return parent instanceof Animal && parent.species === 'Giraffe';
   },
   fields: (t) => ({
     name: t.exposeString('name', {}),
-    age: t.exposeInt('age', {}),
+    age: t.exposeInt('age'),
     a: t.field({
       type: 'Boolean',
-      resolve: (parent) => false,
+      resolve: () => false,
     }),
   }),
 });
@@ -74,6 +84,14 @@ enum MyEnum {
 
 builder.enumType(MyEnum, {
   name: 'MyEnum',
+  values: {
+    Foo: {
+      description: 'Some description here',
+    },
+    Num: {
+      deprecationReason: 'Not used anymore..',
+    },
+  },
 });
 
 // Create input types
@@ -87,24 +105,31 @@ const Example = builder.inputType('Example', {
     date: t.field({
       type: 'Date',
     }),
+    withNullDefault: t.field({
+      type: 'Boolean',
+      required: false,
+      defaultValue: null,
+    }),
   }),
 });
 
 interface ExampleShape {
   example: {
-    id: number | string;
+    id: string;
     id2?: number;
-    ids: (number | string)[];
+    ids: string[];
     ids2?: number[];
     enum?: MyEnum;
-    date?: string;
+    date?: Date | string;
   };
-  id?: number | string;
-  ids: (number | string)[];
+  id?: string;
+  ids: string[];
   more: ExampleShape;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  json?: any;
 }
 
-const Example2 = builder.inputRef<ExampleShape>('Example2');
+const Example2 = builder.inputRef<ExampleShape, false>('Example2');
 
 Example2.implement({
   fields: (t) => ({
@@ -115,11 +140,20 @@ Example2.implement({
   }),
 });
 
+export const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
+  fields: (t) => ({
+    example: t.field({ type: Example, required: true }),
+    id: t.id({ required: false }),
+    ids: t.idList({ required: true }),
+    more: t.field({ type: Example3, required: true }),
+    json: t.field({ type: 'AnyJson', required: false }),
+  }),
+});
+
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) =>
-    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) => (Object.hasOwn(parent, 'firstName') ? 'User' : 'Article'),
 });
 
 // Creating an ObjectType and its resolvers
@@ -157,12 +191,11 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) =>
-        Number.parseInt(String(args.example2.more.more.more.example.id), 10),
+      resolve: (_parent, args) => Number.parseInt(args.example2.more.more.more.example.id, 10),
     }),
     // Using a union type
     related: t.field({
-      resolve: (parent) => ({
+      resolve: () => ({
         body: 'stuff',
         title: 'hi',
       }),
@@ -190,7 +223,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
+      resolve: (_parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -205,7 +238,7 @@ builder.objectType('User', {
         list: false,
         items: true,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     notSparseList: t.idList({
       args: {
@@ -220,7 +253,7 @@ builder.objectType('User', {
         list: true,
         items: false,
       },
-      resolve: (parent, args) => args.ids,
+      resolve: (_parent, args) => args.ids,
     }),
     defaultArgs: t.idList({
       args: {
@@ -229,7 +262,7 @@ builder.objectType('User', {
           defaultValue: ['abc'],
         }),
       },
-      resolve: (parent, args) => [123, ...args.ids],
+      resolve: (_parent, args) => [123, ...args.ids],
     }),
     fact: t.exposeString('funFact', { nullable: true }),
   }),
@@ -268,7 +301,7 @@ const Shaveable = builder.interfaceType('Shaveable', {
 
 // Enums
 const Stuff = builder.enumType('stuff', {
-  values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
+  values: ['Beats', 'Bears', 'BattlestarGalactica'],
 });
 
 builder.objectType('Sheep', {
@@ -281,7 +314,7 @@ builder.objectType('Sheep', {
       args: {
         id: t.arg.id(),
       },
-      resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
+      resolve: (_p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     thing: t.field({
       type: Stuff,
@@ -312,6 +345,24 @@ builder.queryType({
         name: 'bah-bah',
         shaved: true,
       }),
+    }),
+    oneOf: t.string({
+      args: {
+        oneOf: t.arg({
+          required: true,
+          type: builder.inputType('OneOfExample', {
+            isOneOf: true,
+            fields: (t) => ({
+              a: t.string(),
+              b: t.string(),
+            }),
+          }),
+        }),
+      },
+      nullable: false,
+      resolve: (_, { oneOf }) => {
+        return oneOf.a ?? oneOf.b;
+      },
     }),
   }),
 });
@@ -351,6 +402,61 @@ builder.subscriptionType({
   }),
 });
 
-const schema = builder.toSchema({});
+builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
+
+const NestedListInput = builder
+  .inputRef<{ list: (number[] | null)[]; date?: Date | string }>('NestedListInput')
+  .implement({
+    fields: (t) => ({
+      list: t.field({
+        type: t.listRef(t.listRef('Int'), { required: false }),
+        required: true,
+      }),
+      date: t.field({ type: 'Date', required: false }),
+    }),
+  });
+
+builder.queryField('nestedLists', (t) =>
+  t.field({
+    type: t.listRef(t.listRef(t.listRef('String')), { nullable: true }),
+    args: {
+      input: t.arg({
+        type: t.arg.listRef(t.arg.listRef(t.arg.listRef('String')), { required: false }),
+        required: true,
+      }),
+      nestedListInput: t.arg({
+        type: NestedListInput,
+      }),
+    },
+    resolve: (_, args) => {
+      const date: Date | string | null | undefined = args.nestedListInput?.date;
+      // biome-ignore lint/complexity/noVoid: <explanation>
+      void date;
+
+      return args.input;
+    },
+  }),
+);
+
+builder
+  .objectRef<{ bool?: boolean; bool2: boolean; boolList?: [boolean] }>('TestExposeNullable')
+  .implement({
+    fields: (t) => ({
+      bool: t.exposeBoolean('bool', { nullable: true }),
+      bList: t.exposeBooleanList('boolList', { nullable: { items: true, list: true } }),
+      blist2: t.expose('boolList', { type: ['Boolean'], nullable: true }),
+    }),
+  });
+
+builder
+  .objectRef<{ list: readonly string[]; optionalList?: readonly string[] }>('TestExposeList')
+  .implement({
+    fields: (t) => ({
+      list: t.exposeStringList('list', { nullable: false }),
+      optionalList: t.exposeStringList('optionalList', { nullable: true }),
+    }),
+  });
+
+const schema = builder.toSchema();
 
 export default schema;

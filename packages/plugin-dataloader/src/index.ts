@@ -1,42 +1,32 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import DataLoader from 'dataloader';
-import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLOutputFieldConfig,
   isThenable,
-  MaybePromise,
-  ObjectRef,
-  SchemaTypes,
-} from '@giraphql/core';
-import { DataloaderObjectTypeOptions } from './types';
+  type MaybePromise,
+  type PothosOutputFieldConfig,
+  type SchemaTypes,
+  unwrapOutputFieldType,
+} from '@pothos/core';
+import type DataLoader from 'dataloader';
+import type { GraphQLFieldResolver } from 'graphql';
 
 export * from './refs';
 export * from './types';
 export * from './util';
 
-const pluginName = 'dataloader' as const;
-export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = 'dataloader';
+export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const isList = fieldConfig.type.kind === 'List';
-    const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
 
-    const options = this.buildCache.getTypeConfig(type.ref)
-      .giraphqlOptions as DataloaderObjectTypeOptions<
-      Types,
-      unknown,
-      bigint | number | string,
-      [],
-      ObjectRef<unknown>,
-      unknown
-    >;
+    const config = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
 
-    const getDataloader = options.extensions?.getDataloader as (
+    const getDataloader = config.extensions?.getDataloader as (
       context: object,
     ) => DataLoader<unknown, unknown>;
 
@@ -44,7 +34,7 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
       return resolver;
     }
 
-    const cacheResolved = options.extensions?.cacheResolved as
+    const cacheResolved = config.extensions?.cacheResolved as
       | ((val: unknown) => string)
       | undefined;
 
@@ -91,6 +81,6 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLDataloaderPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDataloaderPlugin);
 
 export default pluginName;

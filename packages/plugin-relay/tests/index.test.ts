@@ -1,6 +1,7 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
 import schemaWithGlobalConnectionFields from './examples/global-connection-fields/schema';
+import schemaWithAdditionalInterfaces from './examples/node-with-interfaces/schema';
 import schema from './examples/relay/schema';
 
 describe('relay example schema', () => {
@@ -10,6 +11,10 @@ describe('relay example schema', () => {
 
   it('generates expected schema with globalConnectionFields', () => {
     expect(printSchema(schemaWithGlobalConnectionFields)).toMatchSnapshot();
+  });
+
+  it('generates expected schema with additional interfaces', () => {
+    expect(printSchema(schemaWithAdditionalInterfaces)).toMatchSnapshot();
   });
 
   describe('queries', () => {
@@ -153,6 +158,22 @@ describe('relay example schema', () => {
               }
             }
           }
+          sharedConnectionAndEdge {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
+          sharedEdgeConnection {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
         }
       `;
 
@@ -170,6 +191,23 @@ describe('relay example schema', () => {
         {
           batchNumbers(first: 3) {
             connectionField
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              startCursor
+              endCursor
+            }
+            edges {
+              edgeField
+              cursor
+              node {
+                number
+              }
+            }
+          },
+          batchNumbersLast: batchNumbers(last: 3) {
+            connectionField
+            totalCount
             pageInfo {
               hasNextPage
               hasPreviousPage
@@ -345,9 +383,10 @@ describe('relay example schema', () => {
           inputGlobalID(
             id: "YWJjOjEyMw=="
             normalId: 123
+            idList: [null, "YWJjOjEyMw=="]
             inputObj: {
               id: "YWJjOjEyMw=="
-              idList: ["YWJjOjEyMw=="]
+              idList: [null, "YWJjOjEyMw=="]
               circular: { id: "YWJjOjEyMw==", idList: ["YWJjOjEyMw=="] }
             }
           )
@@ -361,11 +400,74 @@ describe('relay example schema', () => {
       });
 
       expect(result.data).toMatchInlineSnapshot(`
-        Object {
-          "inputGlobalID": "{\\"normal\\":\\"123\\",\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}]},\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"},\\"idList\\":[{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"}]},\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"}}",
+        {
+          "inputGlobalID": "{"id":{"typename":"abc","id":"123"},"idList":[null,{"typename":"abc","id":"123"}],"inputObj":{"circular":{"id":{"typename":"abc","id":"123"},"idList":[{"typename":"abc","id":"123"}],"otherList":[{"someField":"abc"}]},"id":{"typename":"abc","id":"123"},"idList":[null,{"typename":"abc","id":"123"}],"otherList":[{"someField":"abc"}]},"normalId":"123"}",
         }
       `);
     });
+
+    it('nodeRef', async () => {
+      const query = gql`
+        {
+          numberNodeRef {
+            id
+            number
+            __typename
+          }
+          node(id: "TnVtYmVyUmVmOjEyMw==") {
+            id
+            __typename
+            number
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result.data).toMatchInlineSnapshot(`
+        {
+          "node": {
+            "__typename": "NumberRef",
+            "id": "TnVtYmVyUmVmOjEyMw==",
+          },
+          "numberNodeRef": {
+            "__typename": "NumberThingNodeRef",
+            "id": "TnVtYmVyVGhpbmdOb2RlUmVmOjEyMw==",
+            "number": 123,
+          },
+        }
+      `);
+    });
+  });
+
+  it('branded nodes', async () => {
+    const query = gql`
+      query {
+        node(id: "TnVtYmVyUmVmOjEyMw==") {
+          id
+          __typename
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result.data).toMatchInlineSnapshot(`
+      {
+        "node": {
+          "__typename": "NumberRef",
+          "id": "TnVtYmVyUmVmOjEyMw==",
+        },
+      }
+    `);
   });
 
   describe('mutations', () => {
@@ -394,21 +496,179 @@ describe('relay example schema', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "a": Object {
+        {
+          "data": {
+            "a": {
               "clientMutationId": "a",
               "itWorked": true,
             },
-            "b": Object {
+            "b": {
               "clientMutationId": "b",
               "itWorked": false,
             },
-            "exampleWithDescriptions": Object {
+            "exampleWithDescriptions": {
               "clientMutationId": "c",
               "itWorked": true,
             },
           },
+        }
+      `);
+    });
+  });
+
+  describe('connection.nodes', () => {
+    it('can query nodes on connection', async () => {
+      const query = gql`
+        query {
+          oddNumbers(first: 2) {
+            edges {
+              node {
+                nodeId
+              }
+            }
+            nodes {
+              nodeId
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: schemaWithGlobalConnectionFields,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "oddNumbers": {
+              "edges": [
+                {
+                  "node": {
+                    "nodeId": "TnVtYmVyOjE=",
+                  },
+                },
+                null,
+              ],
+              "nodes": [
+                {
+                  "nodeId": "TnVtYmVyOjE=",
+                },
+                null,
+              ],
+            },
+          },
+        }
+      `);
+    });
+  });
+
+  describe('parsing global ids', () => {
+    it('parses ids', async () => {
+      const query = gql`
+        query {
+          idWithColon(id: "SURXaXRoQ29sb246MTp0ZXN0") {
+            id
+            idString
+          }
+          idsWithColon(ids: ["SURXaXRoQ29sb246MTp0ZXN0", "SURXaXRoQ29sb246Mjp0ZXN0OmV4YW1wbGU="]) {
+            id
+            idString
+          }
+          numberThingByID(id: "TnVtYmVyOjE=") {
+            id
+            number
+          }
+          numberThingsByIDs(ids: ["TnVtYmVyOjE=", "TnVtYmVyOjI="]) {
+            id
+            number
+          }
+          invalid: numberThingByID(id: "T3RoZXI6Mg==") {
+            id
+            number
+          }
+          invalidList: numberThingsByIDs(ids: ["T3RoZXI6Mg=="]) {
+            id
+            number
+          }
+          echoIDs(
+            globalID: "TnVtYmVyOjE="
+            numberThingID: "TnVtYmVyOjE="
+            genericNumberThingID: "TnVtYmVyOjE="
+          ) {
+            id
+            typename
+            arg
+            idType
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "echoIDs": [
+              {
+                "arg": "globalID",
+                "id": "1",
+                "idType": "string",
+                "typename": "Number",
+              },
+              {
+                "arg": "numberThingID",
+                "id": "1",
+                "idType": "number",
+                "typename": "Number",
+              },
+              {
+                "arg": "genericNumberThingID",
+                "id": "1",
+                "idType": "string",
+                "typename": "Number",
+              },
+            ],
+            "idWithColon": {
+              "id": "SURXaXRoQ29sb246MTp0ZXN0",
+              "idString": "1:test",
+            },
+            "idsWithColon": [
+              {
+                "id": "SURXaXRoQ29sb246MTp0ZXN0",
+                "idString": "1:test",
+              },
+              {
+                "id": "SURXaXRoQ29sb246Mjp0ZXN0OmV4YW1wbGU=",
+                "idString": "2:test:example",
+              },
+            ],
+            "invalid": null,
+            "invalidList": null,
+            "numberThingByID": {
+              "id": "TnVtYmVyOjE=",
+              "number": 1,
+            },
+            "numberThingsByIDs": [
+              {
+                "id": "TnVtYmVyOjE=",
+                "number": 1,
+              },
+              {
+                "id": "TnVtYmVyOjI=",
+                "number": 2,
+              },
+            ],
+          },
+          "errors": [
+            [GraphQLError: ID: T3RoZXI6Mg== is not of type: Number],
+            [GraphQLError: ID: T3RoZXI6Mg== is not of type: Number],
+          ],
         }
       `);
     });

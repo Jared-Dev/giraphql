@@ -1,42 +1,50 @@
 {
-  "name": "@giraphql/converter",
-  "version": "2.11.1",
-  "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
+  "name": "@pothos/converter",
+  "version": "4.2.0",
+  "description": "A converter for generating typescript that implements an SDL input schema",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
-    "import": "./esm/index.js",
-    "require": "./lib/index.js"
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs --strip-leading-paths",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/converter"
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "keywords": [
-    "giraphql",
-    "graphql",
-    "schema",
-    "typescript",
-    "converter"
-  ],
+  "keywords": ["pothos", "graphql", "schema", "typescript", "converter"],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
-    "graphql": "16.0.1",
-    "ts-morph": "^12.2.0",
-    "yargs": "^17.2.1"
+    "graphql": "^16.8.1",
+    "ts-morph": "^24.0.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/test-utils": "^0.5.1",
-    "@types/yargs": "^17.0.6"
+    "@pothos/core": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@types/yargs": "^17.0.33"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

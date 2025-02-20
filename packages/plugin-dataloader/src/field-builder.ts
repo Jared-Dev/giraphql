@@ -1,19 +1,21 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
-  FieldKind,
-  FieldNullability,
-  FieldRef,
-  InputFieldMap,
-  InputShapeFromFields,
+  type FieldKind,
+  type FieldNullability,
+  type FieldRef,
+  type InputFieldMap,
+  type InputShapeFromFields,
+  type OutputType,
   RootFieldBuilder,
-  SchemaTypes,
-  TypeParam,
-} from '@giraphql/core';
-import { LoadableFieldOptions, LoaderShapeFromType } from './types';
-import { rejectErrors } from './util';
-import { dataloaderGetter } from '.';
+  type SchemaTypes,
+  type ShapeFromTypeParam,
+  type TypeParam,
+} from '@pothos/core';
+import type { GraphQLResolveInfo } from 'graphql';
+import type { LoadableGroupFieldOptions, LoadableListFieldOptions } from './types';
+import type { LoadableFieldOptions, LoaderShapeFromType } from './types';
+import { pathDataloaderGetter, rejectErrors } from './util';
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind
@@ -26,12 +28,14 @@ fieldBuilderProto.loadable = function loadable<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = boolean,
 >({
   load,
   sort,
   loaderOptions,
   resolve,
   type,
+  byPath,
   ...options
 }: LoadableFieldOptions<
   SchemaTypes,
@@ -42,17 +46,20 @@ fieldBuilderProto.loadable = function loadable<
   ResolveReturnShape,
   Key,
   CacheKey,
-  FieldKind
->): FieldRef<unknown> {
-  const getLoader = dataloaderGetter<
+  FieldKind,
+  ByPath
+>): FieldRef<SchemaTypes, unknown> {
+  const getLoader = pathDataloaderGetter<
     Key,
     LoaderShapeFromType<SchemaTypes, Type, Nullable>,
-    CacheKey
+    CacheKey,
+    InputShapeFromFields<Args>
   >(
     loaderOptions,
-    load,
+    (keys, ctx, args, info) => load(keys, ctx, args as never, info as never),
     undefined,
     sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key,
+    byPath,
   );
 
   return this.field({
@@ -66,11 +73,152 @@ fieldBuilderProto.loadable = function loadable<
       info: GraphQLResolveInfo,
     ) => {
       const ids = await resolve(parent, args, context, info);
-      const loader = getLoader(context);
+
+      if (ids == null) {
+        return null;
+      }
+
+      const loader = getLoader(args, context, info);
 
       if (Array.isArray(type)) {
-        return rejectErrors(loader.loadMany(ids as Key[]));
+        return rejectErrors((ids as Key[]).map((id) => (id == null ? id : loader.load(id))));
       }
+
+      return loader.load(ids as Key);
+    },
+  });
+};
+
+fieldBuilderProto.loadableList = function loadableList<
+  Args extends InputFieldMap,
+  Type extends OutputType<SchemaTypes>,
+  Key,
+  CacheKey,
+  ResolveReturnShape,
+  Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = boolean,
+>({
+  load,
+  sort,
+  loaderOptions,
+  resolve,
+  type,
+  byPath,
+  ...options
+}: LoadableListFieldOptions<
+  SchemaTypes,
+  unknown,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape,
+  Key,
+  CacheKey,
+  FieldKind,
+  ByPath
+>): FieldRef<SchemaTypes, unknown> {
+  const getLoader = pathDataloaderGetter<
+    Key,
+    ShapeFromTypeParam<SchemaTypes, [Type], Nullable>,
+    CacheKey,
+    InputShapeFromFields<Args>
+  >(
+    loaderOptions,
+    (keys, ctx, args, info) => load(keys, ctx, args as never, info as never),
+    undefined,
+    sort as (value: ShapeFromTypeParam<SchemaTypes, [Type], Nullable>) => Key,
+    byPath,
+  );
+
+  return this.field({
+    ...options,
+    type: [type],
+    // @ts-expect-error types don't match because this handles both lists and single objects
+    resolve: async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: {},
+      info: GraphQLResolveInfo,
+    ) => {
+      const ids = await resolve(parent, args, context, info);
+      const loader = getLoader(args, context, info);
+
+      return loader.load(ids as Key);
+    },
+  });
+};
+
+fieldBuilderProto.loadableGroup = function loadableGroup<
+  Args extends InputFieldMap,
+  Type extends OutputType<SchemaTypes>,
+  Key,
+  CacheKey,
+  ResolveReturnShape,
+  Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = false,
+>({
+  load,
+  group,
+  loaderOptions,
+  byPath,
+  resolve,
+  type,
+  ...options
+}: LoadableGroupFieldOptions<
+  SchemaTypes,
+  unknown,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape,
+  Key,
+  CacheKey,
+  FieldKind,
+  ByPath
+>): FieldRef<SchemaTypes, unknown> {
+  const getLoader = pathDataloaderGetter<
+    Key,
+    ShapeFromTypeParam<SchemaTypes, Type, true>[],
+    CacheKey,
+    InputShapeFromFields<Args>
+  >(
+    loaderOptions,
+    async (keys, ctx, args, info) => {
+      const values = await load(keys, ctx, args as never, info as never);
+      const groups = new Map<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[]>();
+
+      for (const value of values) {
+        if (value == null) {
+          continue;
+        }
+
+        const groupKey = group(value);
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, []);
+        }
+
+        groups.get(groupKey)!.push(value);
+      }
+
+      return keys.map((key) => groups.get(key) ?? []);
+    },
+    undefined,
+    false,
+    byPath,
+  );
+
+  return this.field({
+    ...options,
+    type: [type],
+    // @ts-expect-error types don't match because this handles both lists and single objects
+    resolve: async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: {},
+      info: GraphQLResolveInfo,
+    ) => {
+      const ids = await resolve(parent, args, context, info);
+      const loader = getLoader(args, context, info);
 
       return loader.load(ids as Key);
     },

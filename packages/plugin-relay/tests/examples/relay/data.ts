@@ -5,7 +5,7 @@ export class Poll {
 
   static lastAnswerID = 0;
 
-  __type: 'Poll' = 'Poll';
+  __type = 'Poll' as const;
 
   id: number;
 
@@ -30,7 +30,7 @@ export class Poll {
   static create(question: string, answers: string[]) {
     const poll = new Poll(question, answers);
 
-    this.map.set(poll.id, poll);
+    Poll.map.set(poll.id, poll);
 
     return poll;
   }

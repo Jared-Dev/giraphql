@@ -1,14 +1,15 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import {
-  BuildCache,
-  GiraphQLInputFieldConfig,
-  GiraphQLInputFieldType,
-  GiraphQLTypeConfig,
+import type { BuildCache } from '../build-cache';
+import { PothosSchemaError } from '../errors';
+import type {
+  PothosInputFieldConfig,
+  PothosInputFieldType,
+  PothosTypeConfig,
   SchemaTypes,
-} from '..';
+} from '../types';
+import { unwrapInputFieldType } from './params';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
-  configs: Record<string, GiraphQLInputFieldConfig<Types>>;
+  configs: Record<string, PothosInputFieldConfig<Types>>;
   map: InputFieldsMapping<Types, T> | null;
 }
 
@@ -16,12 +17,12 @@ export type InputFieldMapping<Types extends SchemaTypes, T> =
   | {
       kind: 'Enum';
       isList: boolean;
-      config: GiraphQLInputFieldConfig<Types>;
+      config: PothosInputFieldConfig<Types>;
       value: T;
     }
   | {
       kind: 'InputObject';
-      config: GiraphQLInputFieldConfig<Types>;
+      config: PothosInputFieldConfig<Types>;
       isList: boolean;
       value: T | null;
       fields: InputTypeFieldsMapping<Types, T>;
@@ -29,7 +30,7 @@ export type InputFieldMapping<Types extends SchemaTypes, T> =
   | {
       kind: 'Scalar';
       isList: boolean;
-      config: GiraphQLInputFieldConfig<Types>;
+      config: PothosInputFieldConfig<Types>;
       value: T;
     };
 
@@ -39,9 +40,9 @@ export type InputFieldsMapping<Types extends SchemaTypes, T> = Map<
 >;
 
 export function resolveInputTypeConfig<Types extends SchemaTypes>(
-  type: GiraphQLInputFieldType<Types>,
+  type: PothosInputFieldType<Types>,
   buildCache: BuildCache<Types>,
-): Extract<GiraphQLTypeConfig, { kind: 'Enum' | 'InputObject' | 'Scalar' }> {
+): Extract<PothosTypeConfig, { kind: 'Enum' | 'InputObject' | 'Scalar' }> {
   if (type.kind === 'List') {
     return resolveInputTypeConfig(type.type, buildCache);
   }
@@ -52,13 +53,15 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
     return config;
   }
 
-  throw new TypeError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
+  throw new PothosSchemaError(
+    `Unexpected config type ${config.kind} for input ref ${String(type.ref)}`,
+  );
 }
 
 export function mapInputFields<Types extends SchemaTypes, T>(
-  inputs: Record<string, GiraphQLInputFieldConfig<Types>>,
+  inputs: Record<string, PothosInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
-  mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
+  mapper: (config: PothosInputFieldConfig<Types>) => T | null,
 ): InputFieldsMapping<Types, T> | null {
   const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
 
@@ -93,7 +96,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         const filteredTypeFields = filterMapped(mapping.fields.map!);
         const mappingForType = {
           ...mapping,
-          typeFields: {
+          fields: {
             configs: mapping.fields.configs,
             map: filteredTypeFields,
           },
@@ -118,13 +121,17 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 
     let result = false;
 
-    map.forEach((mapping) => {
-      if (mapping.value !== null || mapping.kind !== 'InputObject') {
+    for (const mapping of map.values()) {
+      if (mapping.value !== null) {
         result = true;
-      } else if (mapping.fields.map && checkForMappings(mapping.fields.map, hasMappings)) {
+      } else if (
+        mapping.kind === 'InputObject' &&
+        mapping.fields.map &&
+        checkForMappings(mapping.fields.map, hasMappings)
+      ) {
         result = true;
       }
-    });
+    }
 
     hasMappings.set(map, result);
 
@@ -133,15 +140,14 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 }
 
 function internalMapInputFields<Types extends SchemaTypes, T>(
-  inputs: Record<string, GiraphQLInputFieldConfig<Types>>,
+  inputs: Record<string, PothosInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
-  mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
+  mapper: (config: PothosInputFieldConfig<Types>) => T | null,
   seenTypes: Map<string, InputTypeFieldsMapping<Types, T>>,
 ) {
   const map = new Map<string, InputFieldMapping<Types, T>>();
 
-  Object.keys(inputs).forEach((fieldName) => {
-    const inputField = inputs[fieldName];
+  for (const [fieldName, inputField] of Object.entries(inputs)) {
     const typeConfig = resolveInputTypeConfig(inputField.type, buildCache);
     const fieldMapping = mapper(inputField);
 
@@ -155,11 +161,11 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
         });
       }
 
-      return;
+      continue;
     }
 
     const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
-      inputField.type.kind === 'List' ? inputField.type.type.ref : inputField.type.ref,
+      unwrapInputFieldType(inputField.type),
     );
 
     if (!seenTypes.has(typeConfig.name)) {
@@ -182,16 +188,20 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
       value: fieldMapping,
       fields: typeFields,
     });
-  });
+  }
 
   return map;
 }
 
-export function createInputValueMapper<Types extends SchemaTypes, T>(
+export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = []>(
   argMap: InputFieldsMapping<Types, T>,
-  mapValue: (val: unknown, mapping: InputFieldMapping<Types, T>) => unknown,
+  mapValue: (val: unknown, mapping: InputFieldMapping<Types, T>, ...args: Args) => unknown,
 ) {
-  return function mapObject(obj: object, map: InputFieldsMapping<Types, T> = argMap) {
+  return function mapObject(
+    obj: object,
+    map: InputFieldsMapping<Types, T> = argMap,
+    ...args: Args
+  ) {
     const mapped: Record<string, unknown> = { ...obj };
 
     map.forEach((field, fieldName) => {
@@ -202,14 +212,21 @@ export function createInputValueMapper<Types extends SchemaTypes, T>(
       }
 
       if (field.kind === 'InputObject' && field.fields.map) {
-        fieldVal = mapObject(fieldVal as Record<string, unknown>, field.fields.map);
+        fieldVal = field.isList
+          ? (fieldVal as (Record<string, unknown> | null)[]).map(
+              (val) => val && mapObject(val, field.fields.map!, ...args),
+            )
+          : mapObject(fieldVal as Record<string, unknown>, field.fields.map, ...args);
+
         mapped[fieldName] = fieldVal;
       }
 
       if (field.kind !== 'InputObject' || field.value !== null) {
         mapped[fieldName] = field.isList
-          ? (fieldVal as unknown[]).map((val) => mapValue(val, field))
-          : mapValue(fieldVal, field);
+          ? (fieldVal as unknown[]).map((val) =>
+              val == null ? val : mapValue(val, field, ...args),
+            )
+          : mapValue(fieldVal, field, ...args);
       }
     });
 

@@ -1,11 +1,37 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { SchemaTypes } from '@giraphql/core';
-import { ConnectionShape, DefaultConnectionArguments } from '../types';
+import {
+  type MaybePromise,
+  PothosValidationError,
+  type SchemaTypes,
+  decodeBase64,
+  encodeBase64,
+} from '@pothos/core';
+import type { ConnectionShape, DefaultConnectionArguments } from '../types';
+
+// Since we know the return types of the connection helpers, we can
+// remove the MaybePromise wrappers on the ConnectionResult shape
+type RemoveMaybePromiseProps<T> = {
+  [K in keyof T]: Awaited<T[K]>;
+};
 
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;
+  totalCount?: number;
+}
+
+export interface ResolveCursorConnectionOptions<T> {
+  args: DefaultConnectionArguments;
+  defaultSize?: number;
+  maxSize?: number;
+  toCursor: (value: T, nodes: T[]) => string;
+}
+
+export interface ResolveCursorConnectionArgs {
+  before?: string;
+  after?: string;
+  limit: number;
+  inverted: boolean;
 }
 
 interface ResolveArrayConnectionOptions {
@@ -18,7 +44,7 @@ const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
-function offsetForArgs(options: ResolveOffsetConnectionOptions) {
+export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
@@ -27,22 +53,28 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   const afterOffset = after ? cursorToOffset(after) : 0;
 
   if (first != null && first < 0) {
-    throw new TypeError('Argument "first" must be a non-negative integer');
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
   }
 
   if (last != null && last < 0) {
-    throw new Error('Argument "last" must be a non-negative integer');
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
   let startOffset = after ? afterOffset + 1 : 0;
-  let endOffset = before ? Math.max(beforeOffset, startOffset) : Number.POSITIVE_INFINITY;
+  let endOffset = before
+    ? Math.max(beforeOffset, startOffset)
+    : options.totalCount != null
+      ? Math.max(options.totalCount, 0)
+      : Number.POSITIVE_INFINITY;
 
   if (first != null) {
     endOffset = Math.min(endOffset, startOffset + first);
   }
   if (last != null) {
     if (endOffset === Number.POSITIVE_INFINITY) {
-      throw new Error('Argument "last" can only be used in combination with "before" or "first"');
+      throw new PothosValidationError(
+        'Argument "last" can only be used in combination with "before" or "first"',
+      );
     }
     startOffset = Math.max(startOffset, endOffset - last);
   }
@@ -51,48 +83,60 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 
   endOffset = Math.min(endOffset, startOffset + Math.min(size, maxSize));
 
-  // Get one extra to check for next page
-  endOffset += 1;
   const totalSize = endOffset - startOffset;
-
-  const lowerBound = after == null ? 0 : afterOffset;
-
-  const hasPreviousPage = last == null ? startOffset > 0 : startOffset > lowerBound;
 
   return {
     offset: startOffset,
-    limit: endOffset - startOffset,
-    hasPreviousPage,
-    expectedSize: totalSize - 1,
-    hasNextPage: (resultSize: number) => {
-      const upperBound = before == null ? startOffset + resultSize : beforeOffset;
-
-      return last == null ? resultSize >= totalSize : upperBound > endOffset;
-    },
+    limit: totalSize + 1,
+    hasPreviousPage: startOffset > 0,
+    expectedSize: totalSize,
+    hasNextPage: (resultSize: number) => resultSize > totalSize,
   };
 }
 
-export async function resolveOffsetConnection<T>(
-  options: ResolveOffsetConnectionOptions,
-  resolve: (params: { offset: number; limit: number }) => Promise<T[]> | T[],
-): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, boolean>> {
+export async function resolveOffsetConnection<
+  T,
+  U extends Promise<readonly T[] | null> | readonly T[] | null,
+  C extends number | undefined = undefined,
+>(
+  options: ResolveOffsetConnectionOptions & { totalCount?: C },
+  resolve: (params: {
+    offset: number;
+    limit: number;
+  }) => U & (MaybePromise<readonly T[] | null> | null),
+): Promise<
+  RemoveMaybePromiseProps<
+    ConnectionShape<
+      SchemaTypes,
+      NonNullable<T>,
+      U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
+      T extends NonNullable<T> ? false : { list: false; items: true },
+      false
+    > & { totalCount: C }
+  >
+> {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
-  const nodes = await resolve({ offset, limit });
+  const nodes = (await resolve({ offset, limit })) as T[] | null;
+
+  if (!nodes) {
+    return nodes as never;
+  }
 
   const edges = nodes.map((value, index) =>
     value == null
       ? null
       : {
           cursor: offsetToCursor(offset + index),
-          node: value as NonNullable<T>,
+          node: value,
         },
   );
 
   const trimmed = edges.slice(0, expectedSize);
 
   return {
-    edges: trimmed,
+    edges: trimmed as never,
+    totalCount: options.totalCount as never,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),
@@ -103,24 +147,35 @@ export async function resolveOffsetConnection<T>(
 }
 
 export function cursorToOffset(cursor: string): number {
-  const string = Buffer.from(cursor, 'base64').toString();
+  const string = decodeBase64(cursor);
 
   if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
-    throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
+    throw new PothosValidationError(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
   }
 
   return Number.parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
 }
 
 export function offsetToCursor(offset: number): string {
-  return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString('base64');
+  return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
 
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
-  array: T[],
-): ConnectionShape<SchemaTypes, NonNullable<T>, boolean> {
-  const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
+  array: readonly T[],
+): RemoveMaybePromiseProps<
+  ConnectionShape<
+    SchemaTypes,
+    NonNullable<T>,
+    false,
+    T extends NonNullable<T> ? false : { list: false; items: true },
+    false
+  > & { totalCount: number }
+> {
+  const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs({
+    totalCount: array.length,
+    ...options,
+  });
 
   const nodes = array.slice(offset, offset + limit);
 
@@ -129,18 +184,100 @@ export function resolveArrayConnection<T>(
       ? null
       : {
           cursor: offsetToCursor(offset + index),
-          node: value as NonNullable<T>,
+          node: value,
         },
   );
 
   const trimmed = edges.slice(0, expectedSize);
 
   return {
-    edges: trimmed,
+    edges: trimmed as never,
+    totalCount: array.length,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),
       hasPreviousPage,
+      hasNextPage: hasNextPage(nodes.length),
+    },
+  };
+}
+
+export function parseCursorConnectionArgs(options: ResolveOffsetConnectionOptions) {
+  const { before, after, first, last } = options.args;
+
+  const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
+  const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
+
+  if (first != null && first < 0) {
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
+  }
+
+  if (last != null && last < 0) {
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
+  }
+
+  const limit = Math.min(first ?? last ?? defaultSize, maxSize) + 1;
+  const inverted = after ? !!last && !first : (!!before && !first) || (!first && !!last);
+
+  return {
+    before: before ?? undefined,
+    after: after ?? undefined,
+    limit,
+    expectedSize: limit - 1,
+    inverted,
+    hasPreviousPage: (resultSize: number) => (inverted ? resultSize >= limit : !!after),
+    hasNextPage: (resultSize: number) => (inverted ? !!before : resultSize >= limit),
+  };
+}
+
+// biome-ignore lint/suspicious/noRedeclare: <explanation>
+type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
+
+export async function resolveCursorConnection<
+  U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
+>(
+  options: ResolveCursorConnectionOptions<NodeType<U>>,
+  resolve: (params: ResolveCursorConnectionArgs) => U,
+): Promise<
+  RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
+> {
+  const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
+    parseCursorConnectionArgs(options);
+
+  const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
+
+  if (!nodes) {
+    return nodes as never;
+  }
+
+  const trimmed = nodes.slice(0, expectedSize);
+
+  if (inverted) {
+    trimmed.reverse();
+  }
+
+  const edges = trimmed.map((value) =>
+    value == null
+      ? null
+      : {
+          cursor: options.toCursor(value, trimmed),
+          node: value,
+        },
+  );
+
+  const startCursor =
+    edges.length > 0 ? edges[0]?.cursor : (options.args.after ?? options.args.before ?? '');
+  const endCursor =
+    edges.length > 0
+      ? edges[edges.length - 1]?.cursor
+      : (options.args.after ?? options.args.before ?? '');
+
+  return {
+    edges: edges as never,
+    pageInfo: {
+      startCursor,
+      endCursor,
+      hasPreviousPage: hasPreviousPage(nodes.length),
       hasNextPage: hasNextPage(nodes.length),
     },
   };

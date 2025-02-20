@@ -1,5 +1,254 @@
 # Change Log
 
+## 4.3.0
+
+### Minor Changes
+
+- 456da16: Add support for custom names on Root types
+
+## 4.2.0
+
+### Minor Changes
+
+- de28b57: Add explicitlyIncludeType option to subGraph options
+
+## 4.1.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [777f6de]
+  - @pothos/core@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
+## 3.13.3
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.13.2
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.13.1
+
+### Patch Changes
+
+- 324027f8: Fix deprecation reasons missing for inputs and args in sub-graphs
+
+## 3.13.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.12.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.12.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.12.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.12.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.12.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.12.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.12.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.12.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.11.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.11.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.10.0
+
+### Minor Changes
+
+- 95fcbaf8: Stop omitting types that implement a returned interface when they should be part of the
+  sub-graph
+
+## 3.9.0
+
+### Minor Changes
+
+- 1ff66576: filter interfaces when building subgraph
+
+## 3.8.0
+
+### Minor Changes
+
+- b04a14a3: Support filtering optional arguments and input fields
+
+## 3.7.0
+
+### Minor Changes
+
+- 1769afd1: Fix compatibility with Errors and Relay plugins
+
+## 3.6.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.5.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.4.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+## 3.3.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
+## 3.2.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.1.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.1.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 3.0.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.11.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.10.3
 
 ### Patch Changes

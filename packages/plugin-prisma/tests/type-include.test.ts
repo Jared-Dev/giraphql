@@ -60,70 +60,71 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 2,
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
               },
             },
-          },
-          "skip": 0,
-          "take": 2,
-        },
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
+            "where": {
+              "id": 1,
             },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "skip": 0,
-          "take": 2,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 3,
               },
             },
+            "where": {
+              "id": 1,
+            },
           },
-          "skip": 0,
-          "take": 3,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 });

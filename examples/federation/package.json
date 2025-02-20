@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "3.1.6",
+  "name": "@pothos-examples/federation",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "start": "node -r @swc-node/register src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@apollo/gateway": "2.9.3",
+    "@apollo/server": "^4.11.2",
+    "@apollo/subgraph": "2.9.3",
+    "@faker-js/faker": "^9.2.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-directives": "workspace:*",
+    "@pothos/plugin-federation": "workspace:*",
+    "@prisma/client": "^6.0.0",
+    "graphql": "^16.8.1",
+    "prisma": "^6.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,12 +1,12 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { buildSchema } from 'graphql';
 import yargs from 'yargs';
-import GiraphQLConverter from '.';
+import PothosConverter from '.';
 
-export default yargs.command(
+export default yargs().command(
   'convert <path>',
-  'convert SDL to GiraphQL',
+  'convert SDL to Pothos',
   (args) => {
     args.option('out', { type: 'string', description: 'path to write output to' });
     args.alias('o', 'out');
@@ -23,14 +23,14 @@ export default yargs.command(
 
     const schemaText = fs.readFileSync(inputPath, 'utf8');
 
-    const converter = new GiraphQLConverter(buildSchema(schemaText), {
+    const converter = new PothosConverter(buildSchema(schemaText), {
       types: (argv.types as string[]) || null,
     });
 
     const output = converter.toString();
 
     if (argv.out) {
-      fs.writeFileSync(path.resolve((process.cwd(), argv.out as string)), output);
+      fs.writeFileSync(path.resolve(process.cwd(), argv.out as string), output);
     } else {
       process.stdout.write(output);
     }

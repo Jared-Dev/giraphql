@@ -1,10 +1,25 @@
-import SchemaBuilder from '@giraphql/core';
-import ValidationPlugin from '@giraphql/plugin-validation';
+import SchemaBuilder from '@pothos/core';
+import ValidationPlugin from '@pothos/plugin-zod';
 import ErrorPlugin from '../../src';
 
-export default new SchemaBuilder<{}>({
+export const builder = new SchemaBuilder<{}>({
   plugins: [ErrorPlugin, ValidationPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
+  },
+});
+
+export type Builder = typeof builder;
+
+export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+  plugins: [ErrorPlugin, ValidationPlugin],
+  errors: {
+    defaultTypes: [Error],
+    defaultResultOptions: {
+      name: ({ fieldName }) => `${fieldName}_CUSTOM_RESULT_NAME`,
+    },
+    defaultUnionOptions: {
+      name: ({ fieldName }) => `${fieldName}_CUSTOM_UNION_NAME`,
+    },
   },
 });

@@ -1,7 +1,7 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { isThenable, SchemaTypes } from '@giraphql/core';
-import { FieldSubscriber } from './types';
-import { SubscriptionCache } from '.';
+import { type SchemaTypes, isThenable } from '@pothos/core';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import type SubscriptionCache from './cache';
+import type { FieldSubscriber } from './types';
 
 export default function resolveWithCache<Types extends SchemaTypes>(
   cache: SubscriptionCache<Types>,
@@ -36,7 +36,11 @@ export default function resolveWithCache<Types extends SchemaTypes>(
   function cacheResult(result: unknown) {
     const cacheNode = cache.add(info, key, canRefetch, result);
 
-    subscribe?.(cacheNode.managerForField(), parent, args, context, info);
+    const sub = subscribe?.(cacheNode.managerForField(), parent, args, context, info);
+
+    if (isThenable(sub)) {
+      return sub.then(() => result);
+    }
 
     return result;
   }

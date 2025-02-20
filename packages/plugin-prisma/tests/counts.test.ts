@@ -10,7 +10,7 @@ prisma.$use((params, next) => {
   return next(params);
 });
 
-describe('prisma', () => {
+describe('prisma counts', () => {
   afterEach(() => {
     queries = [];
   });
@@ -22,8 +22,13 @@ describe('prisma', () => {
   it('relationCount and count on connections', async () => {
     const query = gql`
       query {
+        userConnection(first: 1) {
+          totalCount
+        }
         me {
           postCount
+          publishedCount
+          filteredCount(published: true)
           anotherPostCount: postCount
           postsConnection(first: 1) {
             totalCount
@@ -34,6 +39,14 @@ describe('prisma', () => {
             }
           }
           oldPosts: postsConnection(first: 1, oldestFirst: true) {
+            totalCount
+            edges {
+              node {
+                id
+              }
+            }
+          }
+          publishedPosts: postsConnection(first: 1, published: true) {
             totalCount
             edges {
               node {
@@ -52,99 +65,424 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "me": Object {
-      "anotherPostCount": 250,
-      "oldPosts": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "1",
+      {
+        "data": {
+          "me": {
+            "anotherPostCount": 250,
+            "filteredCount": 149,
+            "oldPosts": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "1",
+                  },
+                },
+              ],
+              "totalCount": 250,
+            },
+            "postCount": 250,
+            "postsConnection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 250,
+            },
+            "publishedCount": 149,
+            "publishedPosts": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 149,
             },
           },
-        ],
-        "totalCount": 250,
-      },
-      "postCount": 250,
-      "postsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "250",
-            },
+          "userConnection": {
+            "totalCount": 100,
           },
-        ],
-        "totalCount": 250,
-      },
-    },
-  },
-}
-`);
+        },
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "_count": Object {
-          "select": Object {
-            "posts": true,
-          },
-        },
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
               },
             },
-          },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "skip": 0,
-          "take": 2,
-        },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
+            "where": {
+              "id": 1,
             },
           },
-          "orderBy": Object {
-            "createdAt": "asc",
-          },
-          "skip": 0,
-          "take": 2,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": {
+                    "where": {
+                      "published": true,
+                    },
+                  },
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+                "where": {
+                  "published": true,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "asc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries only totalCount on connection', async () => {
+    const query = gql`
+      query {
+        userConnection {
+          totalCount
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('connection totalCount in fragment', async () => {
+    const query = gql`
+      query {
+        userConnection(first: 1) {
+          ...totalCountFragment
+        }
+        me {
+          postsConnectionFragment: postsConnection(first: 1) {
+            ...postsTotalCountFragment
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+
+      fragment totalCountFragment on QueryUserConnection {
+        totalCount
+      }
+
+      fragment postsTotalCountFragment on UserPostsConnection {
+        fragmentTotalCount: totalCount
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsConnectionFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "fragmentTotalCount": 250,
+            },
+          },
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('connection totalCount in inline fragment', async () => {
+    const query = gql`
+      query {
+        userConnection(first: 1) {
+          ... on QueryUserConnection {
+            totalCount
+          }
+        }
+        me {
+          postsConnectionFragment: postsConnection(first: 1) {
+            ... on UserPostsConnection {
+              totalCount
+            }
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsConnectionFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 250,
+            },
+          },
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('nested in single item', async () => {
@@ -189,121 +527,111 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "post": Object {
-      "author": Object {
-        "postCount": 250,
-        "postsConnection": Object {
-          "totalCount": 250,
-        },
-        "profile": Object {
-          "user": Object {
-            "postCount": 250,
-          },
-        },
-      },
-      "id": "1",
-    },
-    "users": Array [
-      Object {
-        "profile": Object {
-          "user": Object {
-            "profile": Object {
-              "user": Object {
-                "profile": Object {
-                  "user": Object {
-                    "postCount": 250,
-                  },
+      {
+        "data": {
+          "post": {
+            "author": {
+              "postCount": 250,
+              "postsConnection": {
+                "totalCount": 250,
+              },
+              "profile": {
+                "user": {
+                  "postCount": 250,
                 },
               },
             },
+            "id": "1",
           },
-        },
-      },
-      Object {
-        "profile": null,
-      },
-    ],
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "_count": Object {
-              "select": Object {
-                "posts": true,
-              },
-            },
-            "posts": Object {
-              "include": Object {
-                "comments": Object {
-                  "include": Object {
-                    "author": true,
-                  },
-                },
-              },
-              "orderBy": Object {
-                "createdAt": "desc",
-              },
-              "skip": 0,
-              "take": 21,
-            },
-            "profile": Object {
-              "include": Object {
-                "user": Object {
-                  "include": Object {
-                    "_count": Object {
-                      "select": Object {
-                        "posts": true,
+          "users": [
+            {
+              "profile": {
+                "user": {
+                  "profile": {
+                    "user": {
+                      "profile": {
+                        "user": {
+                          "postCount": 250,
+                        },
                       },
                     },
                   },
                 },
               },
             },
-          },
+            {
+              "profile": null,
+            },
+          ],
         },
-        "comments": Object {
-          "include": Object {
-            "author": true,
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "author": {
+                "include": {
+                  "_count": {
+                    "select": {
+                      "posts": true,
+                    },
+                  },
+                  "profile": {
+                    "include": {
+                      "user": {
+                        "include": {
+                          "_count": {
+                            "select": {
+                              "posts": true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
           },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": Object {
-              "include": Object {
-                "profile": Object {
-                  "include": Object {
-                    "user": Object {
-                      "include": Object {
-                        "profile": Object {
-                          "include": Object {
-                            "user": Object {
-                              "include": Object {
-                                "_count": Object {
-                                  "select": Object {
-                                    "posts": true,
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
+                  "user": {
+                    "include": {
+                      "profile": {
+                        "include": {
+                          "user": {
+                            "include": {
+                              "profile": {
+                                "include": {
+                                  "user": {
+                                    "include": {
+                                      "_count": {
+                                        "select": {
+                                          "posts": true,
+                                        },
+                                      },
+                                    },
                                   },
                                 },
                               },
@@ -316,17 +644,14 @@ Array [
                 },
               },
             },
+            "take": 2,
           },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "take": 2,
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('nested in list of item', async () => {
@@ -357,115 +682,215 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "posts": Array [
-      Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-      Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-      Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-    ],
-  },
-}
-`);
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "_count": Object {
-              "select": Object {
-                "posts": true,
-              },
-            },
-            "posts": Object {
-              "include": Object {
-                "author": Object {
-                  "include": Object {
-                    "_count": Object {
-                      "select": Object {
-                        "posts": true,
+      {
+        "data": {
+          "posts": [
+            {
+              "author": {
+                "postCount": 250,
+                "postsConnection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "author": {
+                          "postCount": 250,
+                        },
                       },
                     },
-                  },
-                },
-                "comments": Object {
-                  "include": Object {
-                    "author": true,
-                  },
+                  ],
+                  "totalCount": 250,
                 },
               },
-              "orderBy": Object {
-                "createdAt": "desc",
-              },
-              "skip": 0,
-              "take": 2,
             },
+            {
+              "author": {
+                "postCount": 250,
+                "postsConnection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "author": {
+                          "postCount": 250,
+                        },
+                      },
+                    },
+                  ],
+                  "totalCount": 250,
+                },
+              },
+            },
+            {
+              "author": {
+                "postCount": 250,
+                "postsConnection": {
+                  "edges": [
+                    {
+                      "node": {
+                        "author": {
+                          "postCount": 250,
+                        },
+                      },
+                    },
+                  ],
+                  "totalCount": 250,
+                },
+              },
+            },
+          ],
+        },
+      }
+    `);
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "author": {
+                "include": {
+                  "_count": {
+                    "select": {
+                      "posts": true,
+                    },
+                  },
+                  "posts": {
+                    "include": {
+                      "author": {
+                        "include": {
+                          "_count": {
+                            "select": {
+                              "posts": true,
+                            },
+                          },
+                        },
+                      },
+                      "comments": {
+                        "include": {
+                          "author": true,
+                        },
+                        "take": 3,
+                      },
+                    },
+                    "orderBy": {
+                      "createdAt": "desc",
+                    },
+                    "skip": 0,
+                    "take": 2,
+                  },
+                },
+              },
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "take": 3,
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries correctly when totalCount and other selections are split across fragments', async () => {
+    const query = gql`
+      query {
+        userNodeConnection(first: 1) {
+          edges {
+            node {
+              postsConnection(first: 1) {
+                totalCount
+              }
+              ...Example
+            }
+          }
+        }
+      }
+
+      fragment Example on Node {
+        id
+        ... on User {
+          postsConnection(first: 1) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userNodeConnection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "VXNlcjox",
+                  "postsConnection": {
+                    "edges": [
+                      {
+                        "node": {
+                          "id": "250",
+                        },
+                      },
+                    ],
+                    "totalCount": 250,
+                  },
+                },
+              },
+            ],
           },
         },
-        "comments": Object {
-          "include": Object {
-            "author": true,
+      }
+    `);
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "skip": 0,
+            "take": 2,
           },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "take": 3,
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 });

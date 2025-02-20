@@ -1,5 +1,272 @@
 # Change Log
 
+## 4.2.0
+
+### Minor Changes
+
+- 27af377: replace eslint and prettier with biome
+
+## 4.1.0
+
+### Minor Changes
+
+- 307340a: Use a shared directive name for defining indirect resolutions
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [777f6de]
+  - @pothos/core@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- 9bd203e: Fix graphql peer dependency version to match documented minumum version
+- Updated dependencies [9bd203e]
+  - @pothos/core@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
+## 4.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
+## 4.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+
+## 3.11.2
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
+## 3.11.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
+## 3.11.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
+## 3.10.1
+
+### Patch Changes
+
+- 372260ec: Fix bug that prevented prisma from correctly including selections when using the
+  directResult option from the errors plugin
+
+## 3.10.0
+
+### Minor Changes
+
+- ecc1d6f8: Add `defaultGetTypeName` option to `@pothos/plugin-errors`, this option allows
+  customizing the generated type names by this plugin.
+
+  An example usage of this:
+
+  ```ts
+  export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+    plugins: [ErrorPlugin, ValidationPlugin],
+    errorOptions: {
+      defaultTypes: [Error],
+      defaultResultOptions: {
+        name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomResult`,
+      },
+      defaultUnionOptions: {
+        name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomUnion`,
+      },
+    },
+  });
+  ```
+
+## 3.9.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
+## 3.8.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
+## 3.8.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
+## 3.8.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
+## 3.8.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
+## 3.8.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
+## 3.8.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
+## 3.8.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
+## 3.8.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+## 3.7.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
+## 3.7.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+## 3.6.0
+
+### Minor Changes
+
+- 09572175: Add builder options for default union and result type options
+
+## 3.5.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
+## 3.5.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
+## 3.4.2
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
+## 3.4.1
+
+### Patch Changes
+
+- 4b24982f: Update dev dependencies
+
+## 3.4.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+## 3.3.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
+## 3.2.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
+## 3.1.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
+## 3.1.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
+## 3.0.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
+## 3.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
+## 2.13.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.12.3
 
 ### Patch Changes

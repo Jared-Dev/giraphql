@@ -1,27 +1,32 @@
-/* eslint-disable prefer-destructuring */
 import './global-types';
+import SchemaBuilder, {
+  BasePlugin,
+  type PothosInputFieldConfig,
+  type PothosOutputFieldConfig,
+  PothosSchemaError,
+  type PothosTypeConfig,
+  type SchemaTypes,
+} from '@pothos/core';
 import {
   GraphQLEnumType,
-  GraphQLFieldConfigArgumentMap,
-  GraphQLFieldConfigMap,
-  GraphQLInputFieldConfigMap,
+  type GraphQLFieldConfigArgumentMap,
+  type GraphQLFieldConfigMap,
+  type GraphQLInputFieldConfigMap,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
-  GraphQLNamedType,
+  type GraphQLNamedType,
   GraphQLObjectType,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLUnionType,
+  getNamedType,
+  isInterfaceType,
+  isNonNullType,
+  isObjectType,
 } from 'graphql';
-import SchemaBuilder, {
-  BasePlugin,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
-  SchemaTypes,
-} from '@giraphql/core';
 import { replaceType } from './util';
 
-const pluginName = 'subGraph' as const;
+const pluginName = 'subGraph';
 
 export default pluginName;
 
@@ -35,31 +40,72 @@ function intersect(left: string[], right: string[]) {
   return false;
 }
 
-export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  static createSubGraph(schema: GraphQLSchema, subGraph: string[] | string) {
+export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  static createSubGraph<Types extends SchemaTypes>(
+    schema: GraphQLSchema,
+    subGraph: string[] | string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ) {
     const subGraphs = Array.isArray(subGraph) ? subGraph : [subGraph];
 
     const config = schema.toConfig();
-    const newTypes = this.filterTypes(config.types, subGraphs);
+    const newTypes = PothosSubGraphPlugin.filterTypes(config.types, subGraphs);
+    const returnedInterfaces = new Set<string>();
+
+    for (const type of newTypes.values()) {
+      if (isObjectType(type) || isInterfaceType(type)) {
+        const fields = type.getFields();
+
+        for (const field of Object.values(fields)) {
+          const namedType = getNamedType(field.type);
+
+          if (isInterfaceType(namedType)) {
+            returnedInterfaces.add(namedType.name);
+          }
+        }
+      }
+    }
+
+    function hasReturnedInterface(type: GraphQLInterfaceType | GraphQLObjectType): boolean {
+      for (const iface of type.getInterfaces()) {
+        if (returnedInterfaces.has(iface.name)) {
+          return true;
+        }
+
+        if (hasReturnedInterface(iface)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
 
     return new GraphQLSchema({
-      types: [...newTypes.values()],
       directives: config.directives,
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
       assumeValid: false,
-      query: newTypes.get('Query') as GraphQLObjectType,
-      mutation: newTypes.get('Mutation') as GraphQLObjectType,
-      subscription: newTypes.get('Subscription') as GraphQLObjectType,
+      query: newTypes.get(schema.getQueryType()?.name ?? 'Query') as GraphQLObjectType,
+      mutation: newTypes.get(schema.getMutationType()?.name ?? 'Mutation') as GraphQLObjectType,
+      subscription: newTypes.get(
+        schema.getSubscriptionType()?.name ?? 'Subscription',
+      ) as GraphQLObjectType,
+      // Explicitly include types that implement an interface that can be resolved in the subGraph
+      types: [...newTypes.values()].filter(
+        (type) =>
+          builder.options.subGraphs?.explicitlyIncludeType?.(type, [subGraph].flat()) ||
+          ((isObjectType(type) || isInterfaceType(type)) &&
+            hasReturnedInterface(type as GraphQLInterfaceType | GraphQLObjectType)),
+      ),
     });
   }
 
   static filterTypes(types: readonly GraphQLNamedType[], subGraphs: string[]) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
-    types.forEach((type) => {
+    for (const type of types) {
       if (type.name.startsWith('__')) {
-        return;
+        continue;
       }
 
       if (
@@ -73,7 +119,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       }
 
       if (!intersect((type.extensions?.subGraphs as string[]) || [], subGraphs)) {
-        return;
+        continue;
       }
 
       if (type instanceof GraphQLScalarType || type instanceof GraphQLEnumType) {
@@ -85,10 +131,10 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           new GraphQLObjectType({
             ...typeConfig,
             interfaces: () =>
-              typeConfig.interfaces.map((iface) =>
-                replaceType(iface, newTypes, typeConfig.name, subGraphs),
-              ),
-            fields: this.filterFields(type, newTypes, subGraphs),
+              typeConfig.interfaces
+                .filter((iface) => newTypes.has(iface.name))
+                .map((iface) => replaceType(iface, newTypes, typeConfig.name, subGraphs)),
+            fields: PothosSubGraphPlugin.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLInterfaceType) {
@@ -101,7 +147,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
               typeConfig.interfaces.map((iface) =>
                 replaceType(iface, newTypes, typeConfig.name, subGraphs),
               ),
-            fields: this.filterFields(type, newTypes, subGraphs),
+            fields: PothosSubGraphPlugin.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLUnionType) {
@@ -122,11 +168,11 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           type.name,
           new GraphQLInputObjectType({
             ...typeConfig,
-            fields: this.mapInputFields(type, newTypes, subGraphs),
+            fields: PothosSubGraphPlugin.mapInputFields(type, newTypes, subGraphs),
           }),
         );
       }
-    });
+    }
 
     return newTypes;
   }
@@ -141,23 +187,38 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     return () => {
       const newFields: GraphQLFieldConfigMap<unknown, unknown> = {};
 
-      Object.keys(oldFields).forEach((fieldName) => {
-        const fieldConfig = oldFields[fieldName];
-
+      for (const [fieldName, fieldConfig] of Object.entries(oldFields)) {
         const newArguments: GraphQLFieldConfigArgumentMap = {};
 
         if (
-          !intersect((fieldConfig.extensions?.subGraphs as string[] | undefined) || [], subGraphs)
+          !intersect(
+            (fieldConfig.extensions?.subGraphs as string[] | undefined) ?? [],
+            subGraphs,
+          ) ||
+          !newTypes.has(getNamedType(fieldConfig.type).name)
         ) {
-          return;
+          continue;
         }
 
-        fieldConfig.args.forEach((argConfig) => {
+        for (const argConfig of fieldConfig.args) {
+          const argSubGraphs = argConfig.extensions?.subGraphs as string[] | undefined;
+
+          if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
+            if (isNonNullType(argConfig.type)) {
+              throw new PothosSchemaError(
+                `argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`,
+              );
+            }
+
+            continue;
+          }
+
           newArguments[argConfig.name] = {
             description: argConfig.description,
             defaultValue: argConfig.defaultValue,
             extensions: argConfig.extensions,
             astNode: argConfig.astNode,
+            deprecationReason: argConfig.deprecationReason,
             type: replaceType(
               argConfig.type,
               newTypes,
@@ -165,7 +226,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
               subGraphs,
             ),
           };
-        });
+        }
 
         newFields[fieldName] = {
           description: fieldConfig.description,
@@ -182,7 +243,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           ),
           args: newArguments,
         };
-      });
+      }
 
       return newFields;
     };
@@ -198,14 +259,25 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     return () => {
       const newFields: GraphQLInputFieldConfigMap = {};
 
-      Object.keys(oldFields).forEach((fieldName) => {
-        const fieldConfig = oldFields[fieldName];
+      for (const [fieldName, fieldConfig] of Object.entries(oldFields)) {
+        const fieldSubGraphs = fieldConfig.extensions?.subGraphs as string[] | undefined;
+
+        if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
+          if (isNonNullType(fieldConfig.type)) {
+            throw new PothosSchemaError(
+              `${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`,
+            );
+          }
+
+          continue;
+        }
 
         newFields[fieldName] = {
           description: fieldConfig.description,
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
           defaultValue: fieldConfig.defaultValue,
+          deprecationReason: fieldConfig.deprecationReason,
           type: replaceType(
             fieldConfig.type,
             newTypes,
@@ -213,7 +285,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             subGraphs,
           ),
         };
-      });
+      }
 
       return newFields;
     };
@@ -221,26 +293,40 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
 
   override afterBuild(schema: GraphQLSchema) {
     if (this.options.subGraph) {
-      return GiraphQLSubGraphPlugin.createSubGraph(schema, this.options.subGraph);
+      return PothosSubGraphPlugin.createSubGraph(schema, this.options.subGraph, this.builder);
     }
 
     return schema;
   }
 
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
     return {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         subGraphs:
-          typeConfig.giraphqlOptions.subGraphs ??
+          typeConfig.pothosOptions.subGraphs ??
           this.builder.options.subGraphs?.defaultForTypes ??
           [],
       },
     };
   }
 
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+    if (fieldConfig.pothosOptions.subGraphs) {
+      return {
+        ...fieldConfig,
+        extensions: {
+          ...fieldConfig.extensions,
+          subGraphs: fieldConfig.pothosOptions.subGraphs,
+        },
+      };
+    }
+
+    return fieldConfig;
+  }
+
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
     const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
 
     if (typeConfig.graphqlKind !== 'Interface' && typeConfig.graphqlKind !== 'Object') {
@@ -249,10 +335,10 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
 
     let subGraphs: Types['SubGraphs'][] = [];
 
-    if (fieldConfig.giraphqlOptions.subGraphs) {
-      subGraphs = fieldConfig.giraphqlOptions.subGraphs;
-    } else if (typeConfig.giraphqlOptions.defaultSubGraphsForFields) {
-      subGraphs = typeConfig.giraphqlOptions.defaultSubGraphsForFields;
+    if (fieldConfig.pothosOptions.subGraphs) {
+      subGraphs = fieldConfig.pothosOptions.subGraphs;
+    } else if (typeConfig.pothosOptions.defaultSubGraphsForFields) {
+      subGraphs = typeConfig.pothosOptions.defaultSubGraphsForFields;
     } else if (this.builder.options.subGraphs?.fieldsInheritFromTypes) {
       subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
     } else if (this.builder.options.subGraphs?.defaultForFields) {
@@ -269,4 +355,4 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLSubGraphPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosSubGraphPlugin);

@@ -1,27 +1,33 @@
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
+import { transform } from '@swc/core';
 import { lexicographicSortSchema, printSchema } from 'graphql';
-import GiraphQLConverter from '../src';
+import PothosConverter from '../src';
 import exampleSchema from './examples/random-stuff';
 import starwarsSchema from './examples/starwars/schema';
 
-function execTS(script: string) {
+async function execTS(script: string) {
+  const compiled = await transform(script, {
+    jsc: { parser: { syntax: 'typescript' }, target: 'es2019' },
+    module: { type: 'commonjs' },
+  });
+
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
-    const child = spawn('ts-node', {
+    const child = spawn('node', {
       stdio: ['pipe', 'pipe', 'inherit'],
       cwd: __dirname,
     });
 
-    child.on('error', (err) => void reject(err));
+    child.on('error', (err) => reject(err));
     child.stdout.on('data', (chunk) => chunks.push(chunk));
-    child.stdout.on('end', () => void resolve(Buffer.concat(chunks).toString()));
+    child.stdout.on('end', () => resolve(Buffer.concat(chunks).toString()));
 
-    child.stdin.write(script);
+    child.stdin.write(compiled.code);
     child.stdin.end();
   });
 }
 
-async function printGeneratedSchema(converter: GiraphQLConverter) {
+async function printGeneratedSchema(converter: PothosConverter) {
   const script = `import { printSchema, lexicographicSortSchema } from 'graphql'\n${converter.toString()}\n\nconsole.log(printSchema(lexicographicSortSchema(schema)))`;
 
   const result = await execTS(script);
@@ -31,7 +37,7 @@ async function printGeneratedSchema(converter: GiraphQLConverter) {
 
 describe('Code generator', () => {
   it('example schema', async () => {
-    const converter = new GiraphQLConverter(exampleSchema);
+    const converter = new PothosConverter(exampleSchema);
 
     expect(converter.toString()).toMatchSnapshot();
 
@@ -39,10 +45,10 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(exampleSchema)).trim());
-  }, 10_000);
+  }, 20_000);
 
   it('starwars schema', async () => {
-    const converter = new GiraphQLConverter(starwarsSchema);
+    const converter = new PothosConverter(starwarsSchema);
 
     expect(converter.toString()).toMatchSnapshot();
 
@@ -50,5 +56,5 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(starwarsSchema)).trim());
-  }, 10_000);
+  }, 20_000);
 });

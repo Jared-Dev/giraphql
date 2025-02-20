@@ -1,34 +1,77 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, ImplementableObjectRef, SchemaTypes, sortClasses, } from '../core/index.ts';
+import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosSchemaError, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
+import { GetTypeName } from './types.ts';
 export * from './types.ts';
 const pluginName = "errors";
 export default pluginName;
 export function capitalize(s: string) {
     return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
-function createErrorProxy(target: {}): {} {
+export const defaultGetResultName: GetTypeName = ({ parentTypeName, fieldName }) => `${parentTypeName}${fieldName}Success`;
+export const defaultGetUnionName: GetTypeName = ({ parentTypeName, fieldName }) => `${parentTypeName}${fieldName}Result`;
+export const unwrapError = Symbol.for("Pothos.unwrapErrors");
+function createErrorProxy(target: {}, ref: unknown, state: {
+    wrapped: boolean;
+}): {} {
     return new Proxy(target, {
+        get(err, val, receiver) {
+            if (val === unwrapError) {
+                return () => {
+                    // eslint-disable-next-line no-param-reassign
+                    state.wrapped = false;
+                };
+            }
+            if (val === typeBrandKey) {
+                return ref;
+            }
+            return Reflect.get(err, val, receiver) as unknown;
+        },
         getPrototypeOf(err) {
-            const proto = Object.getPrototypeOf(err) as {};
-            if (!proto) {
+            const proto = Reflect.getPrototypeOf(err) as {};
+            if (!state.wrapped || !proto) {
                 return proto;
             }
-            return createErrorProxy(proto);
+            return createErrorProxy(proto, ref, state);
         },
     });
 }
 const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
-export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
-        const errorOptions = fieldConfig.giraphqlOptions.errors;
-        const errorBuilderOptions = this.builder.options.errorOptions;
+export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, config: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
+        if (isTypeOf) {
+            return (parent, context, info) => {
+                if (typeof parent === "object" && parent) {
+                    (parent as {
+                        [unwrapError]?: () => void;
+                    })[unwrapError]?.();
+                }
+                return isTypeOf(parent, context, info);
+            };
+        }
+        return isTypeOf;
+    }
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
+        const errorOptions = fieldConfig.pothosOptions.errors;
+        const errorBuilderOptions = this.builder.options.errors;
         if (!errorOptions) {
             return fieldConfig;
         }
+        const { name: getResultName = defaultGetResultName, ...defaultResultOptions } = errorBuilderOptions?.defaultResultOptions ?? {
+            name: defaultGetResultName,
+        };
+        const { name: getUnionName = defaultGetUnionName, ...defaultUnionOptions } = errorBuilderOptions?.defaultUnionOptions ?? {
+            name: defaultGetUnionName,
+        };
         const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
-        const { types = [], result: { name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`, fields: resultFieldOptions, ...resultObjectOptions } = {} as never, union: { name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`, ...unionOptions } = {} as never, dataField: { name: dataFieldName = "data", ...dataField } = {} as never, } = errorOptions;
+        const { types = [], result: { name: resultName = getResultName({
+            parentTypeName,
+            fieldName: capitalize(fieldConfig.name),
+        }), fields: resultFieldOptions, ...resultObjectOptions } = {} as never, union: { name: unionName = getUnionName({
+            parentTypeName,
+            fieldName: capitalize(fieldConfig.name),
+        }), ...unionOptions } = {} as never, dataField: { name: dataFieldName = "data", ...dataField } = {} as never, } = errorOptions;
         const errorTypes = sortClasses([
             ...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]),
         ]);
@@ -37,26 +80,27 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         }).directResult ??
             errorBuilderOptions?.directResult ??
             false;
-        const typeRef = fieldConfig.type.kind === "List" ? fieldConfig.type.type.ref : fieldConfig.type.ref;
+        const typeRef = unwrapOutputFieldType(fieldConfig.type);
         const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
         const unionType = this.runUnique(resultName, () => {
             let resultType: ImplementableObjectRef<Types, unknown>;
-            if (directResult && !Array.isArray(fieldConfig.giraphqlOptions.type)) {
-                resultType = fieldConfig.giraphqlOptions.type as ImplementableObjectRef<Types, unknown>;
+            if (directResult && !Array.isArray(fieldConfig.pothosOptions.type)) {
+                resultType = fieldConfig.pothosOptions.type as ImplementableObjectRef<Types, unknown>;
                 const resultConfig = this.builder.configStore.getTypeConfig(resultType);
                 if (resultConfig.graphqlKind !== "Object") {
-                    throw new TypeError(`Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`);
+                    throw new PothosSchemaError(`Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`);
                 }
             }
             else {
                 resultType = this.builder.objectRef<unknown>(resultName);
                 resultType.implement({
+                    ...defaultResultOptions,
                     ...resultObjectOptions,
                     fields: (t) => ({
                         ...resultFieldOptions?.(t),
                         [dataFieldName]: t.field({
                             ...dataField,
-                            type: fieldConfig.giraphqlOptions.type,
+                            type: fieldConfig.pothosOptions.type,
                             nullable: fieldConfig.type.kind === "List"
                                 ? { items: fieldConfig.type.type.nullable, list: false }
                                 : false,
@@ -65,18 +109,19 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                     }),
                 });
             }
-            const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-            const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions?.getDataloader;
+            const getDataloader = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
+                .extensions?.getDataloader;
             return this.builder.unionType(unionName, {
                 types: [...errorTypes, resultType],
                 resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
+                ...defaultUnionOptions,
                 ...unionOptions,
                 extensions: {
                     ...unionOptions.extensions,
                     getDataloader,
-                    giraphQLPrismaIndirectInclude: {
+                    pothosPrismaIndirectInclude: {
                         getType: () => typeName,
-                        path: [{ type: resultName, name: dataFieldName }],
+                        path: directResult ? [] : [{ type: resultName, name: dataFieldName }],
                     },
                 },
             });
@@ -85,7 +130,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                giraphqlErrors: errorTypes,
+                pothosErrors: errorTypes,
             },
             type: {
                 kind: "Union",
@@ -94,9 +139,9 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             },
         };
     }
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
-        const giraphqlErrors = fieldConfig.extensions?.giraphqlErrors as typeof Error[] | undefined;
-        if (!giraphqlErrors) {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+        const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
+        if (!pothosErrors) {
             return resolver;
         }
         return async (...args) => {
@@ -104,9 +149,9 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                 return (await resolver(...args)) as never;
             }
             catch (error: unknown) {
-                for (const errorType of giraphqlErrors) {
+                for (const errorType of pothosErrors) {
                     if (error instanceof errorType) {
-                        const result = createErrorProxy(error);
+                        const result = createErrorProxy(error, errorType, { wrapped: true });
                         errorTypeMap.set(result, errorType);
                         return result;
                     }
@@ -116,4 +161,9 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         };
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLErrorsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
+    v3: (options) => ({
+        errorOptions: undefined,
+        errors: options?.errorOptions,
+    }),
+});

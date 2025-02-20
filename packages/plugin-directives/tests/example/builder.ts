@@ -1,13 +1,20 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import DirectivePlugin from '../../src';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type DirectiveTypes = {
   rateLimit: {
     locations: 'FIELD_DEFINITION' | 'OBJECT';
     args: {
       limit: number;
       duration: number;
+    };
+  };
+  cacheControl: {
+    locations: 'FIELD_DEFINITION' | 'OBJECT' | 'INTERFACE' | 'UNION';
+    args: {
+      scope?: 'PRIVATE' | 'PUBLIC';
+      maxAge?: number;
+      inheritMaxAge?: boolean;
     };
   };
   s: {
@@ -59,7 +66,9 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [DirectivePlugin],
-  useGraphQLToolsUnorderedDirectives: true,
+  directives: {
+    useGraphQLToolsUnorderedDirectives: true,
+  },
 });
 
 export default builder;

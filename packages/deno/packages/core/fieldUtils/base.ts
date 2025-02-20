@@ -1,57 +1,69 @@
 // @ts-nocheck
-import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
+import { defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
+import { ArgumentRef } from '../refs/arg.ts';
+import { FieldRef } from '../refs/field.ts';
+import type { FieldKind, InputFieldMap, PothosInputFieldConfig, Resolver, ShapeFromTypeParam, } from '../types/index.ts';
+import { FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
-import { FieldKind, FieldRef, GiraphQLInputFieldConfig, InputFieldMap, ShapeFromTypeParam, } from '../index.ts';
-export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
-    typename: string;
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
     kind: Kind;
-    graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind];
-    constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind]) {
-        this.typename = name;
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind];
+    builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, kind: Kind, graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind]) {
         this.builder = builder;
         this.kind = kind;
         this.graphqlKind = graphqlKind;
     }
-    protected createField<Args extends InputFieldMap, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>>(
+    protected createField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap = {}>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-        const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(this.kind, this.typename);
-        this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name) => {
-            const args: Record<string, GiraphQLInputFieldConfig<Types>> = {};
+    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}> & {
+        resolve?: Resolver<unknown, {}, {}, unknown, unknown>;
+    }): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+        const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(this.kind, (name, typeConfig) => {
+            const args: Record<string, PothosInputFieldConfig<Types>> = {};
             if (options.args) {
                 Object.keys(options.args).forEach((argName) => {
-                    const argRef = options.args![argName];
-                    args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, "Arg");
+                    args[argName] = (options.args![argName] as ArgumentRef<Types, unknown>).getConfig(argName, name, typeConfig);
                 });
             }
+            let { resolve } = options as {
+                resolve?: (...argList: unknown[]) => unknown;
+            };
+            if (options.extensions?.pothosExposedField === name) {
+                resolve = defaultFieldResolver as typeof resolve;
+            }
+            const { subscribe } = options as {
+                subscribe?: (...argList: unknown[]) => unknown;
+            };
             return {
                 kind: this.kind as never,
-                graphqlKind: this.graphqlKind,
-                parentType: this.typename,
+                graphqlKind: typeConfig.graphqlKind as "Interface" | "Object",
+                parentType: typeConfig.name,
                 name,
                 args,
+                argMappers: [],
                 type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? this.builder.defaultFieldNullability),
-                giraphqlOptions: options as never,
-                extensions: options.extensions,
+                pothosOptions: options as never,
+                extensions: {
+                    pothosOriginalResolve: resolve,
+                    pothosOriginalSubscribe: subscribe,
+                    ...options.extensions,
+                },
                 description: options.description,
                 deprecationReason: options.deprecationReason,
-                resolve: (options as {
-                    resolve?: (...argList: unknown[]) => unknown;
-                }).resolve ??
-                    (() => {
-                        throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
-                    }),
-                subscribe: (options as {
-                    subscribe?: (...argList: unknown[]) => unknown;
-                }).subscribe,
+                resolve,
+                subscribe,
             };
         });
         return ref;
     }
-    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, options: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends string & keyof ParentShape>(name: Name, { extensions, ...options }: PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         return this.createField({
             ...options,
+            extensions: {
+                pothosExposedField: name,
+                ...extensions,
+            },
             resolve: (parent) => (parent as Record<string, never>)[name as string],
         });
     }
